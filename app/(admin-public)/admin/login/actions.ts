@@ -23,8 +23,8 @@ export async function loginAction(formData: FormData) {
   const cookieStore = await cookies();
   cookieStore.set("ADMIN_SESSION", email, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: process.env.COOKIE_SECURE === "true",
+    sameSite: "lax",
     maxAge: 8 * 60 * 60,
     path: "/",
   });

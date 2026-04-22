@@ -6,6 +6,7 @@ services:
       - "3001:3000"
     environment:
       NODE_ENV: production
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ADMIN_API_URL: ${ADMIN_API_URL}
       ADMIN_SECRET: ${ADMIN_SECRET}
       ADMIN_EMAILS: ${ADMIN_EMAILS}
