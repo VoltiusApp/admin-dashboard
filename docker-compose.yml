@@ -1,0 +1,12 @@
+services:
+  admin-dashboard:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: production
+      ADMIN_API_URL: ${ADMIN_API_URL}
+      ADMIN_SECRET: ${ADMIN_SECRET}
+      ADMIN_EMAILS: ${ADMIN_EMAILS}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
