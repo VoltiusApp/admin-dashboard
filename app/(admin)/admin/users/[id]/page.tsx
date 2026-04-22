@@ -24,6 +24,7 @@ interface UserDetail {
   discount_pct: number | null;
   ls_customer_id: string | null;
   ls_subscription_id: string | null;
+  admin_override: boolean;
   created_at: string;
 }
 
@@ -234,6 +235,19 @@ export default async function UserDetailPage({
               className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white resize-none"
             />
           </Field>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="admin_override"
+              id="admin_override"
+              value="true"
+              defaultChecked={user.admin_override}
+              className="accent-yellow-400"
+            />
+            <label htmlFor="admin_override" className="text-xs text-yellow-400 select-none">
+              Admin override — block Lemon Squeezy webhooks from changing this tier
+            </label>
+          </div>
           <div>
             <button
               type="submit"

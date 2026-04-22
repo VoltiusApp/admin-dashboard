@@ -12,6 +12,9 @@ export async function patchUserAction(userId: string, formData: FormData) {
   const trial_used = formData.has("trial_used")
     ? formData.get("trial_used") === "true"
     : undefined;
+  const admin_override = formData.has("admin_override")
+    ? formData.get("admin_override") === "true"
+    : false;
 
   await adminFetch(`/v1/admin/users/${userId}`, {
     method: "PATCH",
@@ -20,6 +23,7 @@ export async function patchUserAction(userId: string, formData: FormData) {
       ...(discount_pct !== undefined ? { discount_pct } : {}),
       ...(admin_notes !== null ? { admin_notes } : {}),
       ...(trial_used !== undefined ? { trial_used } : {}),
+      admin_override,
     }),
   });
   revalidatePath(`/admin/users/${userId}`);
