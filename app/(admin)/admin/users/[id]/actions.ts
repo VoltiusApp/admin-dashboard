@@ -15,6 +15,9 @@ export async function patchUserAction(userId: string, formData: FormData) {
   const admin_override = formData.has("admin_override")
     ? formData.get("admin_override") === "true"
     : false;
+  const seat_count = formData.get("seat_count")
+    ? Number(formData.get("seat_count"))
+    : undefined;
 
   await adminFetch(`/v1/admin/users/${userId}`, {
     method: "PATCH",
@@ -23,6 +26,7 @@ export async function patchUserAction(userId: string, formData: FormData) {
       ...(discount_pct !== undefined ? { discount_pct } : {}),
       ...(admin_notes !== null ? { admin_notes } : {}),
       ...(trial_used !== undefined ? { trial_used } : {}),
+      ...(seat_count !== undefined ? { seat_count } : {}),
       admin_override,
     }),
   });

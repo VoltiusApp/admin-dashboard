@@ -26,6 +26,7 @@ interface UserDetail {
   ls_subscription_id: string | null;
   admin_override: boolean;
   created_at: string;
+  seat_count: number | null;
 }
 
 interface Device {
@@ -156,6 +157,16 @@ export default async function UserDetailPage({
                 min={1}
                 max={100}
                 defaultValue={user.discount_pct ?? ""}
+                placeholder="—"
+                className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white"
+              />
+            </Field>
+            <Field label="Seat count">
+              <input
+                name="seat_count"
+                type="number"
+                min={1}
+                defaultValue={user.seat_count ?? ""}
                 placeholder="—"
                 className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white"
               />
