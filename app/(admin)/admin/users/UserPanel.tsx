@@ -9,6 +9,8 @@ import {
   type UserDetail,
   type UsersResponse,
 } from "@/app/lib/admin-client";
+import { usePresence } from "@/app/lib/use-presence";
+import { StatusDot } from "./StatusDot";
 
 const TIER_COLORS: Record<string, string> = {
   free: "bg-gray-700 text-gray-300",
@@ -31,6 +33,8 @@ function formatBytes(b: number) {
 
 export function UserPanel({ id }: { id: string }) {
   const qc = useQueryClient();
+  const { onlineSet } = usePresence();
+  const isOnline = onlineSet.has(id);
   const userQuery = useQuery({
     queryKey: ["user", id],
     queryFn: () => adminApi.users.get(id),
@@ -193,8 +197,17 @@ export function UserPanel({ id }: { id: string }) {
       {/* Sticky header */}
       <div className="border-b border-gray-800 bg-gray-950 px-5 py-3 flex items-center gap-2 flex-wrap">
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-white truncate">
-            {user.email}
+          <div className="flex items-center gap-2">
+            {isOnline && (
+              <StatusDot
+                color="#22c55e"
+                size={8}
+                title="Online — active sync connection"
+              />
+            )}
+            <div className="text-sm font-bold text-white truncate">
+              {user.email}
+            </div>
           </div>
           <div className="text-xs text-gray-500 font-mono mt-0.5 truncate">
             {user.id}

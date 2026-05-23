@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { logoutAction } from "../(admin-public)/admin/login/actions";
 import { Providers } from "./providers";
+import { OnlineBadge } from "./OnlineBadge";
 
 export default function AdminLayout({
   children,
@@ -22,12 +23,15 @@ export default function AdminLayout({
           <NavLink href="/admin/stats">Stats</NavLink>
           <NavLink href="/admin/churn">Churn</NavLink>
           <NavLink href="/admin/audit">Audit Log</NavLink>
-          <div className="mt-2 px-3 py-2 text-[10px] text-gray-600 border border-gray-800 rounded">
-            Press{" "}
-            <kbd className="border border-gray-800 rounded px-1 text-gray-500">
-              ⌘K
-            </kbd>{" "}
-            anywhere
+          <div className="mt-2 space-y-2">
+            <OnlineBadge />
+            <div className="px-3 py-2 text-[10px] text-gray-600 border border-gray-800 rounded">
+              Press{" "}
+              <kbd className="border border-gray-800 rounded px-1 text-gray-500">
+                ⌘K
+              </kbd>{" "}
+              anywhere
+            </div>
           </div>
         </nav>
         <form action={logoutAction} className="p-2">

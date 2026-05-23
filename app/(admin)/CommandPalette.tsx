@@ -10,6 +10,8 @@ import {
   type UserDetail,
   type UserListRow,
 } from "@/app/lib/admin-client";
+import { usePresence } from "@/app/lib/use-presence";
+import { StatusDot } from "./admin/users/StatusDot";
 
 const RECENT_KEY = "admin:recent-users";
 const RECENT_MAX = 6;
@@ -51,6 +53,7 @@ export function CommandPalette() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const qc = useQueryClient();
+  const { onlineSet, count: onlineCount } = usePresence();
 
   // Detect active user from URL (either /admin/users/[id] or /admin/users?u=<id>).
   const activeUserId = useMemo(() => {
@@ -220,7 +223,7 @@ export function CommandPalette() {
             {/* Context actions on active user */}
             {activeUserQuery.data && (
               <Command.Group
-                heading={`Actions: ${activeUserQuery.data.email}`}
+                heading={`Actions: ${activeUserQuery.data.email}${onlineSet.has(activeUserQuery.data.id) ? "  (online)" : ""}`}
                 className="palette-group"
               >
                 <CmdItem
@@ -305,7 +308,13 @@ export function CommandPalette() {
                     key={u.id}
                     value={`user-${u.id}`}
                     onSelect={() => openUser(u.id)}
-                    icon="◔"
+                    icon={
+                      onlineSet.has(u.id) ? (
+                        <StatusDot color="#22c55e" size={7} />
+                      ) : (
+                        "◔"
+                      )
+                    }
                     hint="↵ open · ⌘↵ full"
                     suffix={<TierTag tier={u.subscription_tier} small />}
                     onKeyDown={(e) => {
@@ -329,7 +338,13 @@ export function CommandPalette() {
                     key={r.id}
                     value={`recent-${r.id}`}
                     onSelect={() => openUser(r.id)}
-                    icon="◷"
+                    icon={
+                      onlineSet.has(r.id) ? (
+                        <StatusDot color="#22c55e" size={7} />
+                      ) : (
+                        "◷"
+                      )
+                    }
                   >
                     {r.email}
                   </CmdItem>
@@ -416,9 +431,9 @@ export function CommandPalette() {
               <kbd className="border border-gray-800 px-1 rounded">⌘↵</kbd> full
               detail
             </span>
-            <span className="ml-auto">
-              <kbd className="border border-gray-800 px-1 rounded">⌘K</kbd>{" "}
-              toggle
+            <span className="ml-auto flex items-center gap-1.5">
+              <StatusDot color="#22c55e" size={5} />
+              {onlineCount} online
             </span>
           </div>
         </div>
@@ -442,7 +457,7 @@ function CmdItem({
 }: {
   value: string;
   onSelect: () => void;
-  icon?: string;
+  icon?: React.ReactNode;
   hint?: string;
   suffix?: React.ReactNode;
   danger?: boolean;
@@ -460,7 +475,7 @@ function CmdItem({
     >
       {icon && (
         <span
-          className={`w-4 text-center text-[11px] ${danger ? "text-red-500" : "text-gray-600"}`}
+          className={`w-4 flex items-center justify-center text-[11px] ${danger ? "text-red-500" : "text-gray-600"}`}
         >
           {icon}
         </span>

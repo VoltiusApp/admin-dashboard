@@ -15,7 +15,9 @@ import {
   type UsersResponse,
   type UsersQuery,
 } from "@/app/lib/admin-client";
+import { usePresence } from "@/app/lib/use-presence";
 import { UserPanel } from "./UserPanel";
+import { StatusDot } from "./StatusDot";
 
 const TIER_COLORS: Record<string, string> = {
   free: "bg-gray-700 text-gray-300",
@@ -91,6 +93,8 @@ export function UsersExplorer({
     initialData: paramsEqual(params, initialParams) ? initialData : undefined,
   });
 
+  const { onlineSet, count: onlineCount } = usePresence();
+
   // Local search input state (debounced via form submit).
   const [searchInput, setSearchInput] = useState(search);
   useEffect(() => setSearchInput(search), [search]);
@@ -114,6 +118,24 @@ export function UsersExplorer({
 
   const columns: ColumnDef<UserListRow>[] = useMemo(
     () => [
+      {
+        id: "online",
+        header: "",
+        cell: (c) => {
+          const online = onlineSet.has(c.row.original.id);
+          return (
+            <div className="flex items-center justify-center w-3">
+              {online ? (
+                <StatusDot
+                  color="#22c55e"
+                  size={7}
+                  title="Online — active sync connection"
+                />
+              ) : null}
+            </div>
+          );
+        },
+      },
       {
         accessorKey: "email",
         header: "Email",
@@ -204,7 +226,7 @@ export function UsersExplorer({
         },
       },
     ],
-    []
+    [onlineSet]
   );
 
   const table = useReactTable({
@@ -219,12 +241,21 @@ export function UsersExplorer({
       <div className="flex flex-col border-r border-gray-800 min-h-0">
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between gap-3">
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-sm font-bold text-white">Users</h1>
-            <span className="text-xs text-gray-600">({total})</span>
-            {usersQuery.isFetching && (
-              <span className="text-[10px] text-gray-600">syncing…</span>
-            )}
+          <div className="flex items-center gap-3">
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-sm font-bold text-white">Users</h1>
+              <span className="text-xs text-gray-600">({total})</span>
+              {usersQuery.isFetching && (
+                <span className="text-[10px] text-gray-600">syncing…</span>
+              )}
+            </div>
+            <div
+              className="flex items-center gap-1.5 text-[10px] text-gray-500"
+              title="Live sync subscribers"
+            >
+              <StatusDot color="#22c55e" size={6} />
+              <span>{onlineCount} online</span>
+            </div>
           </div>
           <a
             href="/api/admin/users/export"

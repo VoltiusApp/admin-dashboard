@@ -133,7 +133,15 @@ function buildQuery(params: UsersQuery): string {
   return s ? `?${s}` : "";
 }
 
+export interface PresenceResponse {
+  online: string[];
+  count: number;
+}
+
 export const adminApi = {
+  presence: {
+    list: () => request<PresenceResponse>(`/presence`),
+  },
   users: {
     list: (params: UsersQuery = {}) =>
       request<UsersResponse>(`/users${buildQuery(params)}`),
