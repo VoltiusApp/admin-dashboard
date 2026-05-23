@@ -375,16 +375,6 @@ export function CommandPalette() {
                 Users
               </CmdItem>
               <CmdItem
-                value="nav-stats"
-                onSelect={() => {
-                  router.push("/admin/stats");
-                  onAction();
-                }}
-                icon="◨"
-              >
-                Stats
-              </CmdItem>
-              <CmdItem
                 value="nav-churn"
                 onSelect={() => {
                   router.push("/admin/churn");

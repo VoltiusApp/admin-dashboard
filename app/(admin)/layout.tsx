@@ -21,7 +21,6 @@ export default function AdminLayout({
         <nav className="flex flex-col gap-1 p-2 flex-1">
           <NavLink href="/admin">Home</NavLink>
           <NavLink href="/admin/users">Users</NavLink>
-          <NavLink href="/admin/stats">Stats</NavLink>
           <NavLink href="/admin/churn">Churn</NavLink>
           <NavLink href="/admin/audit">Audit Log</NavLink>
           <div className="mt-2 space-y-2">
