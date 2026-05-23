@@ -31,15 +31,27 @@ function Stat({
 
 export default async function StatsPage() {
   let stats: Stats | null = null;
+  let fetchError: string | null = null;
   try {
     const res = await adminFetch("/v1/admin/stats");
-    if (res.ok) stats = await res.json();
-  } catch {
-    // silent
+    if (res.ok) {
+      stats = await res.json();
+    } else {
+      const body = await res.text().catch(() => "");
+      fetchError = `API returned ${res.status}: ${body || res.statusText}`;
+    }
+  } catch (e) {
+    fetchError = `Network error: ${e instanceof Error ? e.message : String(e)}`;
   }
 
   if (!stats) {
-    return <div className="p-6 text-red-400">Failed to load stats.</div>;
+    return (
+      <div className="p-6">
+        <div className="bg-red-900/30 border border-red-800 rounded px-4 py-3 text-sm text-red-300 font-mono">
+          {fetchError ?? "Failed to load stats."}
+        </div>
+      </div>
+    );
   }
 
   const mrrEstimate =
