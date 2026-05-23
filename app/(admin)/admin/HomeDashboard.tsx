@@ -1,13 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Area,
   AreaChart,
   CartesianGrid,
   Cell,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -16,8 +14,12 @@ import {
   YAxis,
 } from "recharts";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   adminApi,
+  type LsMetrics,
+  type LsRecentOrder,
+  type LsSummaryResponse,
   type OverviewResponse,
 } from "@/app/lib/admin-client";
 
@@ -36,6 +38,7 @@ export function HomeDashboard({
 }: {
   initialData: OverviewResponse;
 }) {
+  const qc = useQueryClient();
   const overview = useQuery({
     queryKey: ["overview"],
     queryFn: () => adminApi.overview.get(),
@@ -43,10 +46,30 @@ export function HomeDashboard({
     refetchInterval: 60_000,
   });
 
+  const ls = useQuery({
+    queryKey: ["ls-summary"],
+    queryFn: () => adminApi.lemonsqueezy.summary(),
+    refetchInterval: 60_000,
+  });
+
+  const refreshLs = useMutation({
+    mutationFn: () => adminApi.lemonsqueezy.summary({ refresh: true }),
+    onSuccess: (data) => {
+      qc.setQueryData(["ls-summary"], data);
+      if (data.last_error) toast.error(`LS refresh: ${data.last_error}`);
+      else toast.success("Lemon Squeezy data refreshed");
+    },
+    onError: () => toast.error("LS refresh failed"),
+  });
+
   const data = overview.data;
   if (!data) {
     return <div className="p-6 text-red-400 text-sm">Failed to load overview.</div>;
   }
+
+  const lsData = ls.data;
+  const lsMetrics = lsData?.metrics ?? null;
+  const lsCurrency = lsMetrics?.currency ?? "USD";
 
   // Build merged signups-vs-churn series for the line chart.
   const series = data.signups_series.map((s, i) => ({
@@ -55,16 +78,6 @@ export function HomeDashboard({
     signups: s.count,
     churn: data.churn_series[i]?.count ?? 0,
   }));
-
-  const mrrPieData = [
-    { name: "Pro", value: data.mrr_by_tier.pro, color: TIER_COLORS.pro },
-    { name: "Teams", value: data.mrr_by_tier.teams, color: TIER_COLORS.teams },
-    {
-      name: "Business",
-      value: data.mrr_by_tier.business,
-      color: TIER_COLORS.business,
-    },
-  ].filter((d) => d.value > 0);
 
   const tierPieData = [
     { name: "Free", value: data.tier_breakdown.free, color: TIER_COLORS.free },
@@ -77,8 +90,6 @@ export function HomeDashboard({
     },
   ].filter((d) => d.value > 0);
 
-  const arrLabel = `~$${(data.mrr_total * 12).toLocaleString()}/yr ARR`;
-
   return (
     <div className="p-6 space-y-6 max-w-[1400px]">
       {/* Header */}
@@ -86,33 +97,47 @@ export function HomeDashboard({
         <div>
           <h1 className="text-xl font-bold text-white">Overview</h1>
           <p className="text-xs text-gray-600 mt-1">
-            Live metrics from local DB · webhooks-synced from Lemon Squeezy
+            Revenue from Lemon Squeezy · activity from local DB
             {overview.isFetching && (
               <span className="ml-2 text-gray-700">syncing…</span>
             )}
           </p>
         </div>
-        <div className="text-[10px] text-gray-600 font-mono">
-          Refreshes every 60s · ⌘K to act
-        </div>
+        <LsRefreshControl
+          ls={lsData ?? null}
+          refreshing={refreshLs.isPending}
+          onRefresh={() => refreshLs.mutate()}
+        />
       </div>
 
       {/* Hero cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <HeroCard
-          label="MRR"
-          value={`$${data.mrr_total.toLocaleString()}`}
-          sub={arrLabel}
+          label="MRR · live from LS"
+          value={lsMetrics ? formatMoney(lsMetrics.mrr_cents, lsCurrency) : "—"}
+          sub={
+            lsMetrics
+              ? `${formatMoney(lsMetrics.mrr_cents * 12, lsCurrency)}/yr ARR`
+              : ls.isLoading
+                ? "loading…"
+                : lsData?.last_error
+                  ? "error — see refresh"
+                  : "no data yet"
+          }
           accent="green"
         />
         <HeroCard
-          label="Paying subscribers"
-          value={data.paying_subscribers}
-          sub={`${data.conversion_pct.toFixed(1)}% of ${data.total_users.toLocaleString()} users`}
+          label="Paying subscribers · LS"
+          value={lsMetrics?.paying_count ?? "—"}
+          sub={
+            lsMetrics
+              ? `${lsMetrics.on_trial_count} on trial · ${lsMetrics.past_due_count} past due`
+              : "—"
+          }
           accent="blue"
         />
         <HeroCard
-          label="Trials active"
+          label="Trials active · local"
           value={data.trials_active}
           sub={
             data.trials_expiring_7d > 0
@@ -122,7 +147,7 @@ export function HomeDashboard({
           accent={data.trials_expiring_7d > 0 ? "yellow" : "neutral"}
         />
         <HeroCard
-          label="Churn (30d)"
+          label="Churn (30d) · local"
           value={data.churn_30d}
           sub={
             data.signups_30d > 0
@@ -130,6 +155,51 @@ export function HomeDashboard({
               : "no signups"
           }
           accent={data.churn_30d > data.signups_30d ? "red" : "neutral"}
+        />
+      </div>
+
+      {/* LS secondary row: revenue, failed, refunds, subscription mix */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <HeroCard
+          label="Revenue this month · LS"
+          value={
+            lsMetrics
+              ? formatMoney(lsMetrics.revenue_this_month_cents, lsCurrency)
+              : "—"
+          }
+          sub="paid orders since 1st"
+          accent="green"
+        />
+        <HeroCard
+          label="Failed payments (30d) · LS"
+          value={lsMetrics?.failed_payments_30d ?? "—"}
+          sub="failed subscription invoices"
+          accent={
+            lsMetrics && lsMetrics.failed_payments_30d > 0 ? "red" : "neutral"
+          }
+        />
+        <HeroCard
+          label="Refunds (30d) · LS"
+          value={
+            lsMetrics ? formatMoney(lsMetrics.refunds_30d_cents, lsCurrency) : "—"
+          }
+          sub="refunded amount"
+          accent={
+            lsMetrics && lsMetrics.refunds_30d_cents > 0 ? "yellow" : "neutral"
+          }
+        />
+        <HeroCard
+          label="MRR split · LS"
+          value={
+            lsMetrics
+              ? formatMoney(lsMetrics.mrr_monthly_cents, lsCurrency)
+              : "—"
+          }
+          sub={
+            lsMetrics
+              ? `monthly · annual ${formatMoney(lsMetrics.mrr_annual_cents, lsCurrency)} (norm.)`
+              : "—"
+          }
         />
       </div>
 
@@ -193,56 +263,36 @@ export function HomeDashboard({
         </div>
       </Section>
 
-      {/* MRR breakdown + tier distribution + recent */}
+      {/* Subscription health + tier distribution + housekeeping */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Section title="MRR by tier">
-          {mrrPieData.length === 0 ? (
-            <EmptyChart label="No paying subscribers yet." />
+        <Section title="Subscription health · LS">
+          {!lsMetrics ? (
+            <EmptyChart
+              label={lsData?.last_error ?? "Loading from Lemon Squeezy…"}
+            />
           ) : (
-            <div className="grid grid-cols-[140px_1fr] gap-3 items-center">
-              <div className="h-32">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={mrrPieData}
-                      dataKey="value"
-                      innerRadius={28}
-                      outerRadius={56}
-                      paddingAngle={2}
-                      stroke="#0a0a0a"
-                      strokeWidth={2}
-                    >
-                      {mrrPieData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<DarkTooltip prefix="$" />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <ul className="space-y-1.5 text-xs">
-                {mrrPieData.map((d) => (
-                  <li key={d.name} className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="w-2 h-2 rounded-sm"
-                        style={{ background: d.color }}
-                      />
-                      <span className="text-gray-400">{d.name}</span>
-                    </span>
-                    <span className="text-white tabular-nums">
-                      ${d.value.toLocaleString()}
-                    </span>
-                  </li>
-                ))}
-                <li className="flex items-center justify-between gap-2 pt-1.5 border-t border-gray-800">
-                  <span className="text-gray-500">Total</span>
-                  <span className="text-white font-bold tabular-nums">
-                    ${data.mrr_total.toLocaleString()}
-                  </span>
-                </li>
-              </ul>
-            </div>
+            <ul className="space-y-2 text-xs">
+              <MetricRow
+                label="Active"
+                value={lsMetrics.paying_count.toLocaleString()}
+              />
+              <MetricRow
+                label="On trial"
+                value={lsMetrics.on_trial_count.toLocaleString()}
+              />
+              <MetricRow
+                label="Past due"
+                value={lsMetrics.past_due_count.toLocaleString()}
+                accent={lsMetrics.past_due_count > 0 ? "red" : undefined}
+              />
+              <MetricRow
+                label="Cancelled (still active until period end)"
+                value={lsMetrics.cancelled_active_count.toLocaleString()}
+                accent={
+                  lsMetrics.cancelled_active_count > 0 ? "yellow" : undefined
+                }
+              />
+            </ul>
           )}
         </Section>
 
@@ -310,6 +360,35 @@ export function HomeDashboard({
           </ul>
         </Section>
       </div>
+
+      {/* Recent orders (LS) */}
+      <Section
+        title="Recent orders · live from Lemon Squeezy"
+        right={
+          <Link
+            href="https://app.lemonsqueezy.com/orders"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[10px] text-gray-500 hover:text-white"
+          >
+            View in LS →
+          </Link>
+        }
+      >
+        {!lsMetrics ? (
+          <p className="text-xs text-gray-600">
+            {lsData?.last_error ?? "Loading…"}
+          </p>
+        ) : lsMetrics.recent_orders.length === 0 ? (
+          <p className="text-xs text-gray-600">No orders yet.</p>
+        ) : (
+          <ul className="text-xs divide-y divide-gray-900">
+            {lsMetrics.recent_orders.map((o) => (
+              <OrderRow key={o.id} order={o} />
+            ))}
+          </ul>
+        )}
+      </Section>
 
       {/* Recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -442,10 +521,15 @@ function MetricRow({
 }: {
   label: string;
   value: string | number;
-  accent?: "red";
+  accent?: "red" | "yellow";
   link?: string;
 }) {
-  const valueColor = accent === "red" ? "text-red-400" : "text-white";
+  const valueColor =
+    accent === "red"
+      ? "text-red-400"
+      : accent === "yellow"
+        ? "text-yellow-400"
+        : "text-white";
   const content = (
     <span
       className={`flex items-center justify-between border-b border-gray-900 pb-2 ${link ? "cursor-pointer hover:bg-gray-900/30 px-1 -mx-1 rounded" : ""}`}
@@ -525,6 +609,89 @@ function DarkTooltip({
       ))}
     </div>
   );
+}
+
+function LsRefreshControl({
+  ls,
+  refreshing,
+  onRefresh,
+}: {
+  ls: LsSummaryResponse | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  const refreshedAt = ls?.refreshed_at;
+  const fresh = refreshedAt
+    ? relTime(refreshedAt)
+    : ls?.refreshing
+      ? "refreshing…"
+      : "never";
+  const stale =
+    refreshedAt && Date.now() - new Date(refreshedAt).getTime() > 10 * 60_000;
+  return (
+    <div className="text-[10px] text-gray-600 font-mono flex items-center gap-3">
+      <span>
+        LS data:{" "}
+        <span className={stale ? "text-yellow-500" : "text-gray-400"}>
+          {fresh}
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={refreshing || ls?.refreshing}
+        className="border border-gray-800 hover:border-gray-600 text-gray-400 hover:text-white px-2 py-0.5 rounded disabled:opacity-50"
+      >
+        {refreshing || ls?.refreshing ? "refreshing…" : "refresh"}
+      </button>
+    </div>
+  );
+}
+
+function OrderRow({ order }: { order: LsRecentOrder }) {
+  const statusColor: Record<string, string> = {
+    paid: "text-green-400",
+    refunded: "text-yellow-400",
+    pending: "text-gray-400",
+    failed: "text-red-400",
+    cancelled: "text-gray-500",
+  };
+  return (
+    <li className="py-2 flex items-center justify-between gap-3">
+      <span className="text-gray-200 truncate min-w-0">
+        {order.email ?? <span className="text-gray-600">no email</span>}
+      </span>
+      <span className="flex items-center gap-2 shrink-0">
+        <span
+          className={`text-[10px] uppercase tracking-widest ${
+            order.refunded
+              ? statusColor.refunded
+              : (statusColor[order.status] ?? "text-gray-400")
+          }`}
+        >
+          {order.refunded ? "refunded" : order.status}
+        </span>
+        <span className="text-white tabular-nums">
+          {formatMoney(order.total_cents, order.currency)}
+        </span>
+        <span className="text-gray-600 text-[10px] tabular-nums">
+          {relTime(order.created_at)}
+        </span>
+      </span>
+    </li>
+  );
+}
+
+function formatMoney(cents: number, currency = "USD"): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    }).format(cents / 100);
+  } catch {
+    return `${(cents / 100).toFixed(2)} ${currency}`;
+  }
 }
 
 function shortDay(iso: string): string {

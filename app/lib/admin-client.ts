@@ -80,6 +80,38 @@ export interface OverviewResponse {
   }[];
 }
 
+export interface LsRecentOrder {
+  id: string;
+  email: string | null;
+  status: string;
+  total_cents: number;
+  currency: string;
+  created_at: string;
+  refunded: boolean;
+}
+
+export interface LsMetrics {
+  mrr_cents: number;
+  mrr_monthly_cents: number;
+  mrr_annual_cents: number;
+  paying_count: number;
+  on_trial_count: number;
+  past_due_count: number;
+  cancelled_active_count: number;
+  revenue_this_month_cents: number;
+  refunds_30d_cents: number;
+  failed_payments_30d: number;
+  recent_orders: LsRecentOrder[];
+  currency: string;
+}
+
+export interface LsSummaryResponse {
+  metrics: LsMetrics | null;
+  refreshed_at: string | null;
+  last_error: string | null;
+  refreshing: boolean;
+}
+
 export interface AuditEntry {
   id: string;
   admin_email: string;
@@ -177,6 +209,12 @@ export const adminApi = {
   },
   overview: {
     get: () => request<OverviewResponse>("/overview"),
+  },
+  lemonsqueezy: {
+    summary: (opts: { refresh?: boolean } = {}) =>
+      request<LsSummaryResponse>(
+        `/lemonsqueezy/summary${opts.refresh ? "?refresh=true" : ""}`
+      ),
   },
   users: {
     list: (params: UsersQuery = {}) =>
