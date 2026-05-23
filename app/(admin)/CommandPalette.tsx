@@ -355,6 +355,16 @@ export function CommandPalette() {
             {/* Navigation */}
             <Command.Group heading="Go to" className="palette-group">
               <CmdItem
+                value="nav-home"
+                onSelect={() => {
+                  router.push("/admin");
+                  onAction();
+                }}
+                icon="◉"
+              >
+                Home
+              </CmdItem>
+              <CmdItem
                 value="nav-users"
                 onSelect={() => {
                   router.push("/admin/users");

@@ -47,6 +47,39 @@ export interface UserDetail {
   deleted_by: string | null;
 }
 
+export interface OverviewResponse {
+  mrr_total: number;
+  mrr_by_tier: { pro: number; teams: number; business: number };
+  paying_subscribers: number;
+  trials_active: number;
+  trials_expiring_7d: number;
+  signups_7d: number;
+  signups_30d: number;
+  churn_7d: number;
+  churn_30d: number;
+  total_users: number;
+  deleted_pending: number;
+  total_blob_gb: number;
+  conversion_pct: number;
+  tier_breakdown: { free: number; pro: number; teams: number; business: number };
+  signups_series: { day: string; count: number }[];
+  churn_series: { day: string; count: number }[];
+  recent_signups: {
+    id: string;
+    email: string;
+    subscription_tier: string;
+    created_at: string;
+  }[];
+  recent_churn: {
+    id: string;
+    user_id: string;
+    from_tier: string;
+    to_tier: string;
+    reason: string | null;
+    created_at: string;
+  }[];
+}
+
 export interface AuditEntry {
   id: string;
   admin_email: string;
@@ -141,6 +174,9 @@ export interface PresenceResponse {
 export const adminApi = {
   presence: {
     list: () => request<PresenceResponse>(`/presence`),
+  },
+  overview: {
+    get: () => request<OverviewResponse>("/overview"),
   },
   users: {
     list: (params: UsersQuery = {}) =>

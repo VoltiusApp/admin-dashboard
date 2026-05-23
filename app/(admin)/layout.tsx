@@ -19,6 +19,7 @@ export default function AdminLayout({
           <div className="text-sm text-white mt-1">Voltius</div>
         </div>
         <nav className="flex flex-col gap-1 p-2 flex-1">
+          <NavLink href="/admin">Home</NavLink>
           <NavLink href="/admin/users">Users</NavLink>
           <NavLink href="/admin/stats">Stats</NavLink>
           <NavLink href="/admin/churn">Churn</NavLink>
