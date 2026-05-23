@@ -8,6 +8,7 @@ import {
   clearTrialAction,
   setFlagAction,
 } from "./actions";
+import { DangerZone } from "./DangerZone";
 
 interface UserDetail {
   id: string;
@@ -27,6 +28,9 @@ interface UserDetail {
   admin_override: boolean;
   created_at: string;
   seat_count: number | null;
+  deleted_at: string | null;
+  deletion_reason: string | null;
+  deleted_by: string | null;
 }
 
 interface Device {
@@ -114,6 +118,11 @@ export default async function UserDetailPage({
           ← Users
         </Link>
         <h1 className="text-xl font-bold text-white">{user.email}</h1>
+        {user.deleted_at && (
+          <span className="bg-red-900 text-red-200 text-xs px-2 py-0.5 rounded">
+            DELETED
+          </span>
+        )}
         {user.is_banned && (
           <span className="bg-red-900 text-red-300 text-xs px-2 py-0.5 rounded">
             BANNED
@@ -429,6 +438,17 @@ export default async function UserDetailPage({
             </tbody>
           </table>
         )}
+      </Section>
+
+      {/* Danger zone */}
+      <Section title="Danger Zone">
+        <DangerZone
+          userId={user.id}
+          email={user.email}
+          deletedAt={user.deleted_at}
+          deletionReason={user.deletion_reason}
+          deletedBy={user.deleted_by}
+        />
       </Section>
 
       {/* Audit Log */}
