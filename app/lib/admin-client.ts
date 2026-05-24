@@ -61,7 +61,7 @@ export interface OverviewResponse {
   deleted_pending: number;
   total_blob_gb: number;
   conversion_pct: number;
-  tier_breakdown: { free: number; pro: number; teams: number; business: number };
+  tier_breakdown: { free: number; pro: number; pro_trial: number; teams: number; business: number };
   signups_series: { day: string; count: number }[];
   churn_series: { day: string; count: number }[];
   recent_signups: {

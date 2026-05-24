@@ -27,6 +27,7 @@ import { useMeta } from "@/app/lib/use-meta";
 const TIER_COLORS: Record<string, string> = {
   free: "#525252",
   pro: "#60a5fa",
+  pro_trial: "#fbbf24",
   teams: "#c084fc",
   business: "#4ade80",
 };
@@ -87,12 +88,9 @@ export function HomeDashboard({
   const tierPieData = [
     { name: "Free", value: data.tier_breakdown.free, color: TIER_COLORS.free },
     { name: "Pro", value: data.tier_breakdown.pro, color: TIER_COLORS.pro },
+    { name: "Pro Trial", value: data.tier_breakdown.pro_trial, color: TIER_COLORS.pro_trial },
     { name: "Teams", value: data.tier_breakdown.teams, color: TIER_COLORS.teams },
-    {
-      name: "Business",
-      value: data.tier_breakdown.business,
-      color: TIER_COLORS.business,
-    },
+    { name: "Business", value: data.tier_breakdown.business, color: TIER_COLORS.business },
   ].filter((d) => d.value > 0);
 
   return (
