@@ -203,12 +203,30 @@ export interface PresenceResponse {
   count: number;
 }
 
+export interface ServerMeta {
+  self_hosted: boolean;
+  billing_enabled: boolean;
+}
+
+export async function fetchMeta(): Promise<ServerMeta> {
+  try {
+    const res = await fetch("/api/meta", { cache: "no-store" });
+    if (!res.ok) return { self_hosted: true, billing_enabled: false };
+    return (await res.json()) as ServerMeta;
+  } catch {
+    return { self_hosted: true, billing_enabled: false };
+  }
+}
+
 export const adminApi = {
   presence: {
     list: () => request<PresenceResponse>(`/presence`),
   },
   overview: {
     get: () => request<OverviewResponse>("/overview"),
+  },
+  meta: {
+    get: fetchMeta,
   },
   lemonsqueezy: {
     summary: (opts: { refresh?: boolean } = {}) =>

@@ -22,6 +22,7 @@ import {
   type LsSummaryResponse,
   type OverviewResponse,
 } from "@/app/lib/admin-client";
+import { useMeta } from "@/app/lib/use-meta";
 
 const TIER_COLORS: Record<string, string> = {
   free: "#525252",
@@ -39,6 +40,9 @@ export function HomeDashboard({
   initialData: OverviewResponse;
 }) {
   const qc = useQueryClient();
+  const meta = useMeta();
+  const selfHosted = meta.self_hosted;
+
   const overview = useQuery({
     queryKey: ["overview"],
     queryFn: () => adminApi.overview.get(),
@@ -50,6 +54,7 @@ export function HomeDashboard({
     queryKey: ["ls-summary"],
     queryFn: () => adminApi.lemonsqueezy.summary(),
     refetchInterval: 60_000,
+    enabled: !selfHosted,
   });
 
   const refreshLs = useMutation({
@@ -97,45 +102,61 @@ export function HomeDashboard({
         <div>
           <h1 className="text-xl font-bold text-white">Overview</h1>
           <p className="text-xs text-gray-600 mt-1">
-            Revenue from Lemon Squeezy · activity from local DB
+            {selfHosted
+              ? "Activity from local DB · self-hosted mode"
+              : "Revenue from Lemon Squeezy · activity from local DB"}
             {overview.isFetching && (
               <span className="ml-2 text-gray-700">syncing…</span>
             )}
           </p>
         </div>
-        <LsRefreshControl
-          ls={lsData ?? null}
-          refreshing={refreshLs.isPending}
-          onRefresh={() => refreshLs.mutate()}
-        />
+        {!selfHosted && (
+          <LsRefreshControl
+            ls={lsData ?? null}
+            refreshing={refreshLs.isPending}
+            onRefresh={() => refreshLs.mutate()}
+          />
+        )}
       </div>
 
       {/* Hero cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <HeroCard
-          label="MRR · live from LS"
-          value={lsMetrics ? formatMoney(lsMetrics.mrr_cents, lsCurrency) : "—"}
-          sub={
-            lsMetrics
-              ? `${formatMoney(lsMetrics.mrr_cents * 12, lsCurrency)}/yr ARR`
-              : ls.isLoading
-                ? "loading…"
-                : lsData?.last_error
-                  ? "error — see refresh"
-                  : "no data yet"
-          }
-          accent="green"
-        />
-        <HeroCard
-          label="Paying subscribers · LS"
-          value={lsMetrics?.paying_count ?? "—"}
-          sub={
-            lsMetrics
-              ? `${lsMetrics.on_trial_count} on trial · ${lsMetrics.past_due_count} past due`
-              : "—"
-          }
-          accent="blue"
-        />
+        {!selfHosted && (
+          <>
+            <HeroCard
+              label="MRR · live from LS"
+              value={lsMetrics ? formatMoney(lsMetrics.mrr_cents, lsCurrency) : "—"}
+              sub={
+                lsMetrics
+                  ? `${formatMoney(lsMetrics.mrr_cents * 12, lsCurrency)}/yr ARR`
+                  : ls.isLoading
+                    ? "loading…"
+                    : lsData?.last_error
+                      ? "error — see refresh"
+                      : "no data yet"
+              }
+              accent="green"
+            />
+            <HeroCard
+              label="Paying subscribers · LS"
+              value={lsMetrics?.paying_count ?? "—"}
+              sub={
+                lsMetrics
+                  ? `${lsMetrics.on_trial_count} on trial · ${lsMetrics.past_due_count} past due`
+                  : "—"
+              }
+              accent="blue"
+            />
+          </>
+        )}
+        {selfHosted && (
+          <HeroCard
+            label="Total users"
+            value={data.total_users.toLocaleString()}
+            sub={`${data.signups_30d} new in 30d`}
+            accent="blue"
+          />
+        )}
         <HeroCard
           label="Trials active · local"
           value={data.trials_active}
@@ -159,49 +180,51 @@ export function HomeDashboard({
       </div>
 
       {/* LS secondary row: revenue, failed, refunds, subscription mix */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <HeroCard
-          label="Revenue this month · LS"
-          value={
-            lsMetrics
-              ? formatMoney(lsMetrics.revenue_this_month_cents, lsCurrency)
-              : "—"
-          }
-          sub="paid orders since 1st"
-          accent="green"
-        />
-        <HeroCard
-          label="Failed payments (30d) · LS"
-          value={lsMetrics?.failed_payments_30d ?? "—"}
-          sub="failed subscription invoices"
-          accent={
-            lsMetrics && lsMetrics.failed_payments_30d > 0 ? "red" : "neutral"
-          }
-        />
-        <HeroCard
-          label="Refunds (30d) · LS"
-          value={
-            lsMetrics ? formatMoney(lsMetrics.refunds_30d_cents, lsCurrency) : "—"
-          }
-          sub="refunded amount"
-          accent={
-            lsMetrics && lsMetrics.refunds_30d_cents > 0 ? "yellow" : "neutral"
-          }
-        />
-        <HeroCard
-          label="MRR split · LS"
-          value={
-            lsMetrics
-              ? formatMoney(lsMetrics.mrr_monthly_cents, lsCurrency)
-              : "—"
-          }
-          sub={
-            lsMetrics
-              ? `monthly · annual ${formatMoney(lsMetrics.mrr_annual_cents, lsCurrency)} (norm.)`
-              : "—"
-          }
-        />
-      </div>
+      {!selfHosted && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <HeroCard
+            label="Revenue this month · LS"
+            value={
+              lsMetrics
+                ? formatMoney(lsMetrics.revenue_this_month_cents, lsCurrency)
+                : "—"
+            }
+            sub="paid orders since 1st"
+            accent="green"
+          />
+          <HeroCard
+            label="Failed payments (30d) · LS"
+            value={lsMetrics?.failed_payments_30d ?? "—"}
+            sub="failed subscription invoices"
+            accent={
+              lsMetrics && lsMetrics.failed_payments_30d > 0 ? "red" : "neutral"
+            }
+          />
+          <HeroCard
+            label="Refunds (30d) · LS"
+            value={
+              lsMetrics ? formatMoney(lsMetrics.refunds_30d_cents, lsCurrency) : "—"
+            }
+            sub="refunded amount"
+            accent={
+              lsMetrics && lsMetrics.refunds_30d_cents > 0 ? "yellow" : "neutral"
+            }
+          />
+          <HeroCard
+            label="MRR split · LS"
+            value={
+              lsMetrics
+                ? formatMoney(lsMetrics.mrr_monthly_cents, lsCurrency)
+                : "—"
+            }
+            sub={
+              lsMetrics
+                ? `monthly · annual ${formatMoney(lsMetrics.mrr_annual_cents, lsCurrency)} (norm.)`
+                : "—"
+            }
+          />
+        </div>
+      )}
 
       {/* Signups vs Churn chart */}
       <Section
@@ -264,37 +287,39 @@ export function HomeDashboard({
       </Section>
 
       {/* Subscription health + tier distribution + housekeeping */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Section title="Subscription health · LS">
-          {!lsMetrics ? (
-            <EmptyChart
-              label={lsData?.last_error ?? "Loading from Lemon Squeezy…"}
-            />
-          ) : (
-            <ul className="space-y-2 text-xs">
-              <MetricRow
-                label="Active"
-                value={lsMetrics.paying_count.toLocaleString()}
+      <div className={`grid grid-cols-1 ${selfHosted ? "lg:grid-cols-2" : "lg:grid-cols-3"} gap-4`}>
+        {!selfHosted && (
+          <Section title="Subscription health · LS">
+            {!lsMetrics ? (
+              <EmptyChart
+                label={lsData?.last_error ?? "Loading from Lemon Squeezy…"}
               />
-              <MetricRow
-                label="On trial"
-                value={lsMetrics.on_trial_count.toLocaleString()}
-              />
-              <MetricRow
-                label="Past due"
-                value={lsMetrics.past_due_count.toLocaleString()}
-                accent={lsMetrics.past_due_count > 0 ? "red" : undefined}
-              />
-              <MetricRow
-                label="Cancelled (still active until period end)"
-                value={lsMetrics.cancelled_active_count.toLocaleString()}
-                accent={
-                  lsMetrics.cancelled_active_count > 0 ? "yellow" : undefined
-                }
-              />
-            </ul>
-          )}
-        </Section>
+            ) : (
+              <ul className="space-y-2 text-xs">
+                <MetricRow
+                  label="Active"
+                  value={lsMetrics.paying_count.toLocaleString()}
+                />
+                <MetricRow
+                  label="On trial"
+                  value={lsMetrics.on_trial_count.toLocaleString()}
+                />
+                <MetricRow
+                  label="Past due"
+                  value={lsMetrics.past_due_count.toLocaleString()}
+                  accent={lsMetrics.past_due_count > 0 ? "red" : undefined}
+                />
+                <MetricRow
+                  label="Cancelled (still active until period end)"
+                  value={lsMetrics.cancelled_active_count.toLocaleString()}
+                  accent={
+                    lsMetrics.cancelled_active_count > 0 ? "yellow" : undefined
+                  }
+                />
+              </ul>
+            )}
+          </Section>
+        )}
 
         <Section title="Tier distribution">
           <div className="grid grid-cols-[140px_1fr] gap-3 items-center">
@@ -353,42 +378,46 @@ export function HomeDashboard({
               accent={data.deleted_pending > 0 ? "red" : undefined}
               link={data.deleted_pending > 0 ? "/admin/users?deleted=only" : undefined}
             />
-            <MetricRow
-              label="Paid conversion"
-              value={`${data.conversion_pct.toFixed(1)}%`}
-            />
+            {!selfHosted && (
+              <MetricRow
+                label="Paid conversion"
+                value={`${data.conversion_pct.toFixed(1)}%`}
+              />
+            )}
           </ul>
         </Section>
       </div>
 
       {/* Recent orders (LS) */}
-      <Section
-        title="Recent orders · live from Lemon Squeezy"
-        right={
-          <Link
-            href="https://app.lemonsqueezy.com/orders"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[10px] text-gray-500 hover:text-white"
-          >
-            View in LS →
-          </Link>
-        }
-      >
-        {!lsMetrics ? (
-          <p className="text-xs text-gray-600">
-            {lsData?.last_error ?? "Loading…"}
-          </p>
-        ) : lsMetrics.recent_orders.length === 0 ? (
-          <p className="text-xs text-gray-600">No orders yet.</p>
-        ) : (
-          <ul className="text-xs divide-y divide-gray-900">
-            {lsMetrics.recent_orders.map((o) => (
-              <OrderRow key={o.id} order={o} />
-            ))}
-          </ul>
-        )}
-      </Section>
+      {!selfHosted && (
+        <Section
+          title="Recent orders · live from Lemon Squeezy"
+          right={
+            <Link
+              href="https://app.lemonsqueezy.com/orders"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[10px] text-gray-500 hover:text-white"
+            >
+              View in LS →
+            </Link>
+          }
+        >
+          {!lsMetrics ? (
+            <p className="text-xs text-gray-600">
+              {lsData?.last_error ?? "Loading…"}
+            </p>
+          ) : lsMetrics.recent_orders.length === 0 ? (
+            <p className="text-xs text-gray-600">No orders yet.</p>
+          ) : (
+            <ul className="text-xs divide-y divide-gray-900">
+              {lsMetrics.recent_orders.map((o) => (
+                <OrderRow key={o.id} order={o} />
+              ))}
+            </ul>
+          )}
+        </Section>
+      )}
 
       {/* Recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
