@@ -364,7 +364,7 @@ export function HomeDashboard({
           <ul className="space-y-2 text-xs">
             <MetricRow
               label="Sync blob storage"
-              value={`${data.total_blob_gb.toFixed(2)} GB`}
+              value={formatStorage(data.total_blob_gb)}
             />
             <MetricRow
               label="Total users"
@@ -707,6 +707,14 @@ function OrderRow({ order }: { order: LsRecentOrder }) {
       </span>
     </li>
   );
+}
+
+function formatStorage(gb: number): string {
+  const bytes = gb * 1073741824;
+  if (bytes < 1024) return `${bytes.toFixed(0)} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${gb.toFixed(2)} GB`;
 }
 
 function formatMoney(cents: number, currency = "USD"): string {
