@@ -53,6 +53,31 @@ function trialLabel(iso: string | null): {
   return { text: `${days}d`, urgent: false };
 }
 
+function usePinnedUsers() {
+  const [pinned, setPinned] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("admin_pinned_users");
+      return new Set(stored ? JSON.parse(stored) : []);
+    } catch {
+      return new Set();
+    }
+  });
+
+  function togglePin(id: string) {
+    setPinned((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try {
+        localStorage.setItem("admin_pinned_users", JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  }
+
+  return { pinned, togglePin };
+}
+
 export function UsersExplorer({
   initialData,
   initialParams,
@@ -94,6 +119,7 @@ export function UsersExplorer({
   });
 
   const { onlineSet, count: onlineCount } = usePresence();
+  const { pinned, togglePin } = usePinnedUsers();
 
   // Local search input state (debounced via form submit).
   const [searchInput, setSearchInput] = useState(search);
@@ -116,8 +142,38 @@ export function UsersExplorer({
   const total = usersQuery.data?.total ?? 0;
   const limit = usersQuery.data?.limit ?? 50;
 
+  const sortedRows = useMemo(() => {
+    const p = rows.filter((r) => pinned.has(r.id));
+    const rest = rows.filter((r) => !pinned.has(r.id));
+    return [...p, ...rest];
+  }, [rows, pinned]);
+
+  const pinnedCount = sortedRows.filter((r) => pinned.has(r.id)).length;
+
   const columns: ColumnDef<UserListRow>[] = useMemo(
     () => [
+      {
+        id: "pin",
+        header: "",
+        cell: (c) => {
+          const isPinned = pinned.has(c.row.original.id);
+          return (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePin(c.row.original.id);
+              }}
+              title={isPinned ? "Unpin" : "Pin to top"}
+              className={`transition-opacity ${isPinned ? "text-amber-400" : "text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100"}`}
+            >
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146"/>
+              </svg>
+            </button>
+          );
+        },
+      },
       {
         id: "online",
         header: "",
@@ -226,11 +282,11 @@ export function UsersExplorer({
         },
       },
     ],
-    [onlineSet]
+    [onlineSet, pinned, togglePin]
   );
 
   const table = useReactTable({
-    data: rows,
+    data: sortedRows,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
@@ -366,28 +422,44 @@ export function UsersExplorer({
                   </td>
                 </tr>
               )}
-              {table.getRowModel().rows.map((row) => {
+              {table.getRowModel().rows.map((row, idx) => {
                 const u = row.original;
                 const isSelected = u.id === selectedId;
+                const isPinned = pinned.has(u.id);
+                const showSeparator = idx === pinnedCount && pinnedCount > 0;
                 return (
-                  <tr
-                    key={u.id}
-                    onClick={() => selectUser(u.id)}
-                    className={`cursor-pointer border-b border-gray-900 transition ${
-                      isSelected
-                        ? "bg-gray-800/80"
-                        : "hover:bg-gray-900/60"
-                    } ${u.deleted_at ? "opacity-60" : ""}`}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-3 py-1.5">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </td>
-                    ))}
-                  </tr>
+                  <>
+                    {showSeparator && (
+                      <tr key="separator">
+                        <td colSpan={columns.length} className="px-3 py-1 bg-gray-950">
+                          <div className="border-t border-gray-800" />
+                        </td>
+                      </tr>
+                    )}
+                    <tr
+                      key={u.id}
+                      onClick={() => selectUser(u.id)}
+                      className={`group cursor-pointer border-b transition ${
+                        isPinned ? "border-amber-950/60" : "border-gray-900"
+                      } ${
+                        isSelected
+                          ? "bg-gray-800/80"
+                          : "hover:bg-gray-900/60"
+                      } ${u.deleted_at ? "opacity-60" : ""}`}
+                    >
+                      {row.getVisibleCells().map((cell, ci) => (
+                        <td
+                          key={cell.id}
+                          className={`px-3 py-1.5 ${ci === 0 && isPinned ? "border-l-2 border-amber-500/60" : ""}`}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  </>
                 );
               })}
             </tbody>
