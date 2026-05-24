@@ -296,6 +296,13 @@ export const adminApi = {
         expectEmpty: true,
       }),
 
+    clearTrial: (id: string) =>
+      request<void>(`/users/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ clear_trial: true, trial_used: true }),
+        expectEmpty: true,
+      }),
+
     audit: (id: string, limit = 50) =>
       request<AuditEntry[]>(`/audit-log?target_id=${id}&limit=${limit}`),
   },

@@ -73,7 +73,7 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleString();
 }
 
-const KNOWN_FLAGS = ["beta_access", "unlimited_devices", "skip_rate_limit"];
+const KNOWN_FLAGS = ["unlimited_devices", "skip_rate_limit"];
 
 export default async function UserDetailPage({
   params,

@@ -173,10 +173,23 @@ export function UserPanel({ id }: { id: string }) {
     mutationFn: ({ days }: { days: number }) =>
       adminApi.users.extendTrial(id, days),
     onSuccess: (_d, vars) => {
-      toast.success(`Extended trial by ${vars.days}d`);
+      if (vars.days > 0) {
+        toast.success(`Extended trial by ${vars.days}d`);
+      } else {
+        toast.success(`Reduced trial by ${Math.abs(vars.days)}d`);
+      }
       invalidateUser();
     },
-    onError: () => toast.error("Failed to extend trial"),
+    onError: () => toast.error("Failed to update trial"),
+  });
+
+  const clearTrialMutation = useMutation({
+    mutationFn: () => adminApi.users.clearTrial(id),
+    onSuccess: () => {
+      toast.success("Trial removed");
+      invalidateUser();
+    },
+    onError: () => toast.error("Failed to remove trial"),
   });
 
   if (userQuery.isLoading) {
@@ -250,8 +263,9 @@ export function UserPanel({ id }: { id: string }) {
             <TrialControl
               endsAt={user.trial_ends_at}
               used={user.trial_used}
-              pending={extendTrialMutation.isPending}
+              pending={extendTrialMutation.isPending || clearTrialMutation.isPending}
               onExtend={(days) => extendTrialMutation.mutate({ days })}
+              onClear={() => clearTrialMutation.mutate()}
             />
           </Fact>
           <Fact label="Signed up">{fmt(user.created_at)}</Fact>
@@ -444,15 +458,18 @@ function TrialControl({
   used,
   pending,
   onExtend,
+  onClear,
 }: {
   endsAt: string | null;
   used: boolean;
   pending: boolean;
   onExtend: (days: number) => void;
+  onClear: () => void;
 }) {
   let label: React.ReactNode = (
     <span className="text-gray-600">no trial</span>
   );
+  const hasActiveTrial = endsAt != null;
   if (endsAt) {
     const ms = new Date(endsAt).getTime() - Date.now();
     const days = Math.ceil(ms / 86_400_000);
@@ -465,13 +482,26 @@ function TrialControl({
     }
   }
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {label}
-      {used && <span className="text-[10px] text-gray-600">(used)</span>}
-      <div className="flex gap-1 ml-auto">
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2 flex-wrap">
+        {label}
+        {used && <span className="text-[10px] text-gray-600">(used)</span>}
+      </div>
+      <div className="flex gap-1 flex-wrap">
+        {hasActiveTrial && [7, 14].map((d) => (
+          <button
+            key={`-${d}`}
+            type="button"
+            disabled={pending}
+            onClick={() => onExtend(-d)}
+            className="text-[10px] text-gray-500 hover:text-white border border-gray-800 hover:border-gray-600 px-1.5 rounded disabled:opacity-50"
+          >
+            -{d}d
+          </button>
+        ))}
         {[7, 14, 30].map((d) => (
           <button
-            key={d}
+            key={`+${d}`}
             type="button"
             disabled={pending}
             onClick={() => onExtend(d)}
@@ -480,6 +510,16 @@ function TrialControl({
             +{d}d
           </button>
         ))}
+        {hasActiveTrial && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onClear}
+            className="text-[10px] text-red-700 hover:text-red-400 border border-gray-800 hover:border-red-900 px-1.5 rounded disabled:opacity-50 ml-1"
+          >
+            Remove
+          </button>
+        )}
       </div>
     </div>
   );
