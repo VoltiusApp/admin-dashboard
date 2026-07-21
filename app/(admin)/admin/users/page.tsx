@@ -17,14 +17,14 @@ export default async function UsersPage({
   }>;
 }) {
   const sp = await searchParams;
-  const page = parseInt(sp.page ?? "1", 10);
   const search = sp.search ?? "";
   const tier = sp.tier ?? "";
   const banned = sp.banned ?? "";
   const deleted = sp.deleted ?? "";
 
+  // Infinite scroll always seeds from the first page.
   const qs = new URLSearchParams();
-  qs.set("page", String(page));
+  qs.set("page", "1");
   if (search) qs.set("search", search);
   if (tier) qs.set("tier", tier);
   if (banned) qs.set("banned", banned);
@@ -55,7 +55,7 @@ export default async function UsersPage({
   }
 
   const initialParams: UsersQuery = {
-    page,
+    page: 1,
     search: search || undefined,
     tier: tier || undefined,
     banned: banned ? banned === "true" : undefined,

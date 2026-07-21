@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useInfiniteQuery, keepPreviousData } from "@tanstack/react-query";
 import {
   flexRender,
   getCoreRowModel,
@@ -8,7 +8,7 @@ import {
   type ColumnDef,
 } from "@tanstack/react-table";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   adminApi,
   type UserListRow,
@@ -94,11 +94,9 @@ export function UsersExplorer({
   const tier = searchParams.get("tier") ?? "";
   const banned = searchParams.get("banned") ?? "";
   const deletedRaw = searchParams.get("deleted") ?? "";
-  const page = parseInt(searchParams.get("page") ?? "1", 10);
 
-  const params: UsersQuery = useMemo(
+  const filters: UsersQuery = useMemo(
     () => ({
-      page,
       search: search || undefined,
       tier: tier || undefined,
       banned: banned ? banned === "true" : undefined,
@@ -107,16 +105,43 @@ export function UsersExplorer({
           ? (deletedRaw as "only" | "any")
           : undefined,
     }),
-    [page, search, tier, banned, deletedRaw]
+    [search, tier, banned, deletedRaw]
   );
 
-  const usersQuery = useQuery({
-    queryKey: ["users", params],
-    queryFn: () => adminApi.users.list(params),
+  const usersQuery = useInfiniteQuery({
+    queryKey: ["users", filters],
+    queryFn: ({ pageParam }) =>
+      adminApi.users.list({ ...filters, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((n, p) => n + p.users.length, 0);
+      return loaded < lastPage.total ? allPages.length + 1 : undefined;
+    },
     placeholderData: keepPreviousData,
     refetchInterval: 30_000,
-    initialData: paramsEqual(params, initialParams) ? initialData : undefined,
+    initialData: filtersEqual(filters, initialParams)
+      ? { pages: [initialData], pageParams: [1] }
+      : undefined,
   });
+
+  // Infinite-scroll: fetch the next page when the sentinel scrolls into view.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = usersQuery;
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { root: scrollRef.current, rootMargin: "300px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const { onlineSet, count: onlineCount } = usePresence();
   const { pinned, togglePin } = usePinnedUsers();
@@ -138,9 +163,11 @@ export function UsersExplorer({
     updateParams({ u: id });
   }
 
-  const rows = usersQuery.data?.users ?? [];
-  const total = usersQuery.data?.total ?? 0;
-  const limit = usersQuery.data?.limit ?? 50;
+  const rows = useMemo(
+    () => usersQuery.data?.pages.flatMap((p) => p.users) ?? [],
+    [usersQuery.data]
+  );
+  const total = usersQuery.data?.pages[0]?.total ?? 0;
 
   const sortedRows = useMemo(() => {
     const p = rows.filter((r) => pinned.has(r.id));
@@ -395,7 +422,7 @@ export function UsersExplorer({
         </form>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto">
+        <div ref={scrollRef} className="flex-1 overflow-auto">
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-gray-950 z-10">
               {table.getHeaderGroups().map((hg) => (
@@ -464,31 +491,16 @@ export function UsersExplorer({
               })}
             </tbody>
           </table>
+          {/* Infinite-scroll sentinel */}
+          <div ref={loadMoreRef} aria-hidden className="h-1" />
         </div>
 
-        {/* Pagination */}
+        {/* Status */}
         <div className="px-4 py-2 border-t border-gray-800 flex items-center justify-between text-[10px] text-gray-500">
           <div>
-            Page {page} · {rows.length} of {total}
+            {rows.length} of {total} loaded
           </div>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => updateParams({ page: String(page - 1) })}
-              className="border border-gray-800 hover:border-gray-600 disabled:opacity-30 px-2 py-0.5 rounded"
-            >
-              ← Prev
-            </button>
-            <button
-              type="button"
-              disabled={rows.length < limit}
-              onClick={() => updateParams({ page: String(page + 1) })}
-              className="border border-gray-800 hover:border-gray-600 disabled:opacity-30 px-2 py-0.5 rounded"
-            >
-              Next →
-            </button>
-          </div>
+          {usersQuery.isFetchingNextPage && <div>Loading more…</div>}
         </div>
       </div>
 
@@ -543,9 +555,8 @@ function EmptyDetail({ count }: { count: number }) {
   );
 }
 
-function paramsEqual(a: UsersQuery, b: UsersQuery): boolean {
+function filtersEqual(a: UsersQuery, b: UsersQuery): boolean {
   return (
-    (a.page ?? 1) === (b.page ?? 1) &&
     (a.search ?? "") === (b.search ?? "") &&
     (a.tier ?? "") === (b.tier ?? "") &&
     (a.banned ?? undefined) === (b.banned ?? undefined) &&
