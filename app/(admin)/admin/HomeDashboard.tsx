@@ -85,6 +85,13 @@ export function HomeDashboard({
     churn: data.churn_series[i]?.count ?? 0,
   }));
 
+  // Accounts that have been stamped at least once. Percentages are taken against
+  // this rather than total_users, so accounts that predate last_seen_on (or have
+  // not reconnected since) don't read as dormant when they simply aren't counted.
+  const countedUsers = data.total_users - data.never_seen;
+  const activePct = (n: number) =>
+    countedUsers > 0 ? Math.round((n / countedUsers) * 100) : 0;
+
   const tierPieData = [
     { name: "Free", value: data.tier_breakdown.free, color: TIER_COLORS.free },
     { name: "Pro", value: data.tier_breakdown.pro, color: TIER_COLORS.pro },
@@ -223,6 +230,42 @@ export function HomeDashboard({
           />
         </div>
       )}
+
+      {/* Account activity — coarse, from users.last_seen_on */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <HeroCard
+          label="Active (30d) · local"
+          value={data.active_30d.toLocaleString()}
+          sub={
+            countedUsers > 0
+              ? `${activePct(data.active_30d)}% of ${countedUsers.toLocaleString()} counted`
+              : "no accounts counted yet"
+          }
+          accent="blue"
+        />
+        <HeroCard
+          label="Active (7d) · local"
+          value={data.active_7d.toLocaleString()}
+          sub={
+            countedUsers > 0
+              ? `${activePct(data.active_7d)}% of ${countedUsers.toLocaleString()} counted`
+              : "no accounts counted yet"
+          }
+        />
+        <HeroCard
+          label="Not yet counted"
+          value={data.never_seen.toLocaleString()}
+          sub="no reconnect since tracking shipped"
+          accent={data.never_seen > 0 ? "yellow" : "neutral"}
+        />
+      </div>
+      <p className="text-[11px] text-gray-600 -mt-2">
+        Activity is a single date per account, overwritten on each use — stamped when
+        the app opens a sync stream or refreshes its session. It records that an
+        account was used on a given day, not what was done or when in the day.
+        Accounts that have not reconnected since this shipped are excluded from the
+        percentages rather than counted as inactive.
+      </p>
 
       {/* Signups vs Churn chart */}
       <Section
