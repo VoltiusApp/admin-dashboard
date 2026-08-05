@@ -85,10 +85,16 @@ export function HomeDashboard({
     churn: data.churn_series[i]?.count ?? 0,
   }));
 
+  // Tolerate a server that predates the activity fields (rollback, or dashboard
+  // deployed ahead of the API) — the row reads as zeroes rather than throwing.
+  const active7d = data.active_7d ?? 0;
+  const active30d = data.active_30d ?? 0;
+  const neverSeen = data.never_seen ?? 0;
+
   // Accounts that have been stamped at least once. Percentages are taken against
   // this rather than total_users, so accounts that predate last_seen_on (or have
   // not reconnected since) don't read as dormant when they simply aren't counted.
-  const countedUsers = data.total_users - data.never_seen;
+  const countedUsers = data.total_users - neverSeen;
   const activePct = (n: number) =>
     countedUsers > 0 ? Math.round((n / countedUsers) * 100) : 0;
 
@@ -235,28 +241,28 @@ export function HomeDashboard({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <HeroCard
           label="Active (30d) · local"
-          value={data.active_30d.toLocaleString()}
+          value={active30d.toLocaleString()}
           sub={
             countedUsers > 0
-              ? `${activePct(data.active_30d)}% of ${countedUsers.toLocaleString()} counted`
+              ? `${activePct(active30d)}% of ${countedUsers.toLocaleString()} counted`
               : "no accounts counted yet"
           }
           accent="blue"
         />
         <HeroCard
           label="Active (7d) · local"
-          value={data.active_7d.toLocaleString()}
+          value={active7d.toLocaleString()}
           sub={
             countedUsers > 0
-              ? `${activePct(data.active_7d)}% of ${countedUsers.toLocaleString()} counted`
+              ? `${activePct(active7d)}% of ${countedUsers.toLocaleString()} counted`
               : "no accounts counted yet"
           }
         />
         <HeroCard
           label="Not yet counted"
-          value={data.never_seen.toLocaleString()}
+          value={neverSeen.toLocaleString()}
           sub="no reconnect since tracking shipped"
-          accent={data.never_seen > 0 ? "yellow" : "neutral"}
+          accent={neverSeen > 0 ? "yellow" : "neutral"}
         />
       </div>
       <p className="text-[11px] text-gray-600 -mt-2">

@@ -61,11 +61,15 @@ export interface OverviewResponse {
   deleted_pending: number;
   total_blob_gb: number;
   conversion_pct: number;
-  /** Accounts whose last_seen_on falls within the last 7 / 30 days, today inclusive. */
-  active_7d: number;
-  active_30d: number;
+  /**
+   * Accounts whose last_seen_on falls within the last 7 / 30 days, today
+   * inclusive. Optional: absent when talking to a server older than the
+   * activity-counts change.
+   */
+  active_7d?: number;
+  active_30d?: number;
   /** Accounts never stamped — not yet reconnected since last_seen_on shipped. */
-  never_seen: number;
+  never_seen?: number;
   tier_breakdown: { free: number; pro: number; pro_trial: number; teams: number; business: number };
   signups_series: { day: string; count: number }[];
   churn_series: { day: string; count: number }[];
