@@ -144,6 +144,9 @@ export interface UsersQuery {
   tier?: string;
   banned?: boolean;
   deleted?: "only" | "any";
+  /** Whitelisted server-side; anything else is a 400. */
+  sort?: "created_at" | "last_seen_on";
+  dir?: "asc" | "desc";
 }
 
 export interface PatchUserBody {
@@ -210,6 +213,8 @@ function buildQuery(params: UsersQuery): string {
   if (params.tier) qs.set("tier", params.tier);
   if (params.banned !== undefined) qs.set("banned", String(params.banned));
   if (params.deleted) qs.set("deleted", params.deleted);
+  if (params.sort) qs.set("sort", params.sort);
+  if (params.dir) qs.set("dir", params.dir);
   const s = qs.toString();
   return s ? `?${s}` : "";
 }

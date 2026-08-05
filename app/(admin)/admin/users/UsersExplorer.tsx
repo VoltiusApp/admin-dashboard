@@ -115,6 +115,11 @@ export function UsersExplorer({
   const tier = searchParams.get("tier") ?? "";
   const banned = searchParams.get("banned") ?? "";
   const deletedRaw = searchParams.get("deleted") ?? "";
+  // Only last_seen_on is offered in the UI; anything else falls back to the
+  // server default rather than sending a value the whitelist would reject.
+  const sortRaw = searchParams.get("sort") === "last_seen_on" ? "last_seen_on" : "";
+  const dirRaw = searchParams.get("dir");
+  const dir = dirRaw === "asc" || dirRaw === "desc" ? dirRaw : "";
 
   const filters: UsersQuery = useMemo(
     () => ({
@@ -125,8 +130,10 @@ export function UsersExplorer({
         deletedRaw === "only" || deletedRaw === "any"
           ? (deletedRaw as "only" | "any")
           : undefined,
+      sort: sortRaw ? "last_seen_on" : undefined,
+      dir: dir || undefined,
     }),
-    [search, tier, banned, deletedRaw]
+    [search, tier, banned, deletedRaw, sortRaw, dir]
   );
 
   const usersQuery = useInfiniteQuery({
@@ -182,6 +189,14 @@ export function UsersExplorer({
 
   function selectUser(id: string | null) {
     updateParams({ u: id });
+  }
+
+  // none -> asc -> desc -> none. Ascending first: the reason to sort by Seen is
+  // to surface the stalest accounts, and those are the oldest dates.
+  function cycleSeenSort() {
+    if (!sortRaw) updateParams({ sort: "last_seen_on", dir: "asc" });
+    else if (dir === "asc") updateParams({ sort: "last_seen_on", dir: "desc" });
+    else updateParams({ sort: null, dir: null });
   }
 
   const rows = useMemo(
@@ -301,7 +316,25 @@ export function UsersExplorer({
       },
       {
         accessorKey: "last_seen_on",
-        header: "Seen",
+        header: () => (
+          <button
+            type="button"
+            onClick={cycleSeenSort}
+            className="uppercase tracking-wider hover:text-gray-300 flex items-center gap-1"
+            title={
+              !sortRaw
+                ? "Sort by last seen (oldest first)"
+                : dir === "asc"
+                  ? "Sort by last seen (most recent first)"
+                  : "Clear sort"
+            }
+          >
+            Seen
+            <span className="text-gray-500">
+              {sortRaw ? (dir === "asc" ? "\u2191" : "\u2193") : ""}
+            </span>
+          </button>
+        ),
         cell: (c) => {
           const seen = relDay(c.row.original.last_seen_on);
           if (!seen) {
@@ -359,7 +392,8 @@ export function UsersExplorer({
         },
       },
     ],
-    [onlineSet, pinned, togglePin]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onlineSet, pinned, togglePin, sortRaw, dir]
   );
 
   const table = useReactTable({
@@ -610,6 +644,8 @@ function filtersEqual(a: UsersQuery, b: UsersQuery): boolean {
     (a.search ?? "") === (b.search ?? "") &&
     (a.tier ?? "") === (b.tier ?? "") &&
     (a.banned ?? undefined) === (b.banned ?? undefined) &&
-    (a.deleted ?? "") === (b.deleted ?? "")
+    (a.deleted ?? "") === (b.deleted ?? "") &&
+    (a.sort ?? "") === (b.sort ?? "") &&
+    (a.dir ?? "") === (b.dir ?? "")
   );
 }

@@ -13,6 +13,8 @@ export default async function UsersPage({
     tier?: string;
     banned?: string;
     deleted?: string;
+    sort?: string;
+    dir?: string;
     u?: string;
   }>;
 }) {
@@ -21,6 +23,9 @@ export default async function UsersPage({
   const tier = sp.tier ?? "";
   const banned = sp.banned ?? "";
   const deleted = sp.deleted ?? "";
+  // Mirror the server whitelist: an unknown value would 400 the initial fetch.
+  const sort = sp.sort === "last_seen_on" ? "last_seen_on" : "";
+  const dir = sp.dir === "asc" || sp.dir === "desc" ? sp.dir : "";
 
   // Infinite scroll always seeds from the first page.
   const qs = new URLSearchParams();
@@ -29,6 +34,8 @@ export default async function UsersPage({
   if (tier) qs.set("tier", tier);
   if (banned) qs.set("banned", banned);
   if (deleted) qs.set("deleted", deleted);
+  if (sort) qs.set("sort", sort);
+  if (dir) qs.set("dir", dir);
 
   let data: UsersResponse = { users: [], total: 0, page: 1, limit: 50 };
   let fetchError: string | null = null;
@@ -63,6 +70,8 @@ export default async function UsersPage({
       deleted === "only" || deleted === "any"
         ? (deleted as "only" | "any")
         : undefined,
+    sort: sort || undefined,
+    dir: dir || undefined,
   };
 
   return <UsersExplorer initialData={data} initialParams={initialParams} />;
