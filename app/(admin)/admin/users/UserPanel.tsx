@@ -1,6 +1,11 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -356,13 +361,23 @@ function patchUsersListCache(
   userId: string,
   patch: (row: UserListRow) => UserListRow
 ) {
-  const queries = qc.getQueriesData<UsersResponse>({ queryKey: ["users"] });
+  // The list is an infinite query, so the cache holds { pages, pageParams } —
+  // patch every page. Never throw: this runs inside onMutate, and a throw there
+  // aborts the mutation before mutationFn ever fires.
+  const queries = qc.getQueriesData<UsersInfiniteData>({ queryKey: ["users"] });
   for (const [key, data] of queries) {
-    if (!data) continue;
-    const next = data.users.map((u) => (u.id === userId ? patch(u) : u));
-    qc.setQueryData<UsersResponse>(key, { ...data, users: next });
+    if (!data?.pages) continue;
+    qc.setQueryData<UsersInfiniteData>(key, {
+      ...data,
+      pages: data.pages.map((page) => ({
+        ...page,
+        users: page.users.map((u) => (u.id === userId ? patch(u) : u)),
+      })),
+    });
   }
 }
+
+type UsersInfiniteData = InfiniteData<UsersResponse, number>;
 
 type UserListRow = UsersResponse["users"][number];
 
