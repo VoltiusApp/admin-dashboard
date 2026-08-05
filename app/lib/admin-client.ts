@@ -14,6 +14,11 @@ export interface UserListRow {
   total_blob_bytes: number;
   device_count: number;
   last_churn_at: string | null;
+  /**
+   * Coarse liveness date (YYYY-MM-DD). null means the account has not been seen
+   * since last_seen_on shipped — not the same as dormant.
+   */
+  last_seen_on: string | null;
   deleted_at: string | null;
 }
 
@@ -42,6 +47,8 @@ export interface UserDetail {
   admin_override: boolean;
   created_at: string;
   seat_count: number | null;
+  /** See UserListRow.last_seen_on. */
+  last_seen_on: string | null;
   deleted_at: string | null;
   deletion_reason: string | null;
   deleted_by: string | null;

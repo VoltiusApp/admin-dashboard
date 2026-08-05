@@ -42,6 +42,27 @@ function relDate(iso: string): string {
   return `${Math.floor(days / 365)}y`;
 }
 
+/**
+ * `last_seen_on` is a calendar date (YYYY-MM-DD), not an instant — parsing it
+ * with `new Date()` yields UTC midnight, which `relDate` would then measure
+ * against local now and report as a day older west of UTC. Compare whole days
+ * instead. Returns null for a never-seen account: absent data, not "0 days ago".
+ */
+function relDay(day: string | null): { text: string; days: number } | null {
+  if (!day) return null;
+  const [y, m, d] = day.split("-").map(Number);
+  const days = Math.round(
+    (Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()) -
+      Date.UTC(y, m - 1, d)) /
+      86_400_000
+  );
+  if (days <= 0) return { text: "today", days: 0 };
+  if (days === 1) return { text: "1d", days };
+  if (days < 30) return { text: `${days}d`, days };
+  if (days < 365) return { text: `${Math.floor(days / 30)}mo`, days };
+  return { text: `${Math.floor(days / 365)}y`, days };
+}
+
 function trialLabel(iso: string | null): {
   text: string;
   urgent: boolean;
@@ -277,6 +298,35 @@ export function UsersExplorer({
             {c.row.original.device_count ?? 0}
           </span>
         ),
+      },
+      {
+        accessorKey: "last_seen_on",
+        header: "Seen",
+        cell: (c) => {
+          const seen = relDay(c.row.original.last_seen_on);
+          if (!seen) {
+            return (
+              <span
+                className="text-gray-700"
+                title="Not seen since activity tracking shipped — unknown, not inactive"
+              >
+                —
+              </span>
+            );
+          }
+          // Dim past 90 days, flag past a year: a candidate stale account.
+          const tone =
+            seen.days >= 365
+              ? "text-red-400"
+              : seen.days >= 90
+                ? "text-yellow-600"
+                : "text-gray-500";
+          return (
+            <span className={tone} title={c.row.original.last_seen_on ?? undefined}>
+              {seen.text}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "created_at",

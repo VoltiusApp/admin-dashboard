@@ -28,6 +28,7 @@ interface UserDetail {
   admin_override: boolean;
   created_at: string;
   seat_count: number | null;
+  last_seen_on: string | null;
   deleted_at: string | null;
   deletion_reason: string | null;
   deleted_by: string | null;
@@ -141,6 +142,12 @@ export default async function UserDetailPage({
         <KV label="Account ID" value={user.account_id} mono />
         <KV label="Email" value={user.email} />
         <KV label="Created" value={fmt(user.created_at)} />
+        {/* A calendar date, not an instant — shown as-is rather than through
+            fmt(), which would render a misleading local midnight. */}
+        <KV
+          label="Last seen"
+          value={user.last_seen_on ?? "— not seen since tracking shipped"}
+        />
       </Section>
 
       {/* Subscription */}
