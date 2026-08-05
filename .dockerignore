@@ -1,0 +1,23 @@
+# Build context hygiene. The Dockerfile does `COPY . .` in the builder stage,
+# so anything left in a deploy checkout would otherwise be baked into the image.
+
+# Host node_modules would clobber the ones the deps stage installs and rebuilds
+# (sharp, unrs-resolver) — never ship them into the context.
+node_modules
+.next
+out
+*.tsbuildinfo
+
+.git
+.gitignore
+.github
+
+# Secrets: ADMIN_SECRET / ADMIN_PASSWORD live in these on the deploy host.
+.env
+.env.*
+!.env.example
+
+Dockerfile
+.dockerignore
+docker-compose.yml
+README.md
