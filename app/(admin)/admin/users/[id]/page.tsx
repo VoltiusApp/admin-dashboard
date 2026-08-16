@@ -9,10 +9,12 @@ import {
   setFlagAction,
 } from "./actions";
 import { DangerZone } from "./DangerZone";
+import { CopyButton } from "../../../CopyButton";
 
 interface UserDetail {
   id: string;
   email: string;
+  handle: string;
   account_id: string;
   subscription_tier: string;
   trial_ends_at: string | null;
@@ -140,6 +142,7 @@ export default async function UserDetailPage({
       <Section title="Identity">
         <KV label="ID" value={user.id} mono />
         <KV label="Account ID" value={user.account_id} mono />
+        <KV label="Handle" value={`@${user.handle}`} mono copy={user.handle} />
         <KV label="Email" value={user.email} />
         <KV label="Created" value={fmt(user.created_at)} />
         {/* A calendar date, not an instant — shown as-is rather than through
@@ -520,17 +523,21 @@ function KV({
   label,
   value,
   mono,
+  copy,
 }: {
   label: string;
   value: string;
   mono?: boolean;
+  /** Exact text to copy, when it differs from the displayed value. */
+  copy?: string;
 }) {
   return (
-    <div className="flex gap-4 text-sm py-0.5">
+    <div className="flex items-center gap-4 text-sm py-0.5">
       <span className="text-gray-500 w-28 shrink-0">{label}</span>
       <span className={`text-gray-200 ${mono ? "font-mono text-xs" : ""}`}>
         {value}
       </span>
+      {copy && <CopyButton value={copy} label={label.toLowerCase()} />}
     </div>
   );
 }

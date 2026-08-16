@@ -15,6 +15,7 @@ import {
   type UsersResponse,
 } from "@/app/lib/admin-client";
 import { usePresence } from "@/app/lib/use-presence";
+import { CopyButton } from "../../CopyButton";
 import { StatusDot } from "./StatusDot";
 
 const TIER_COLORS: Record<string, string> = {
@@ -226,6 +227,12 @@ export function UserPanel({ id }: { id: string }) {
             <div className="text-sm font-bold text-white truncate">
               {user.email}
             </div>
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+            <span className="text-xs text-gray-400 font-mono truncate">
+              @{user.handle}
+            </span>
+            <CopyButton value={user.handle} label="handle" />
           </div>
           <div className="text-xs text-gray-500 font-mono mt-0.5 truncate">
             {user.id}

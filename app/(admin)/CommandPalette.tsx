@@ -324,7 +324,10 @@ export function CommandPalette() {
                       }
                     }}
                   >
-                    {u.email}
+                    {u.email}{" "}
+                    <span className="text-[10px] text-gray-500 font-mono">
+                      @{u.handle}
+                    </span>
                   </CmdItem>
                 ))}
               </Command.Group>

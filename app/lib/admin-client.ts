@@ -4,6 +4,8 @@
 export interface UserListRow {
   id: string;
   email: string;
+  /** Public identifier (`users.handle`, NOT NULL since migration 035). */
+  handle: string;
   subscription_tier: string;
   trial_ends_at: string | null;
   trial_used: boolean;
@@ -32,6 +34,8 @@ export interface UsersResponse {
 export interface UserDetail {
   id: string;
   email: string;
+  /** See UserListRow.handle. */
+  handle: string;
   account_id: string;
   subscription_tier: string;
   trial_ends_at: string | null;

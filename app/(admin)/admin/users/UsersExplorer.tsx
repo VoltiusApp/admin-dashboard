@@ -16,6 +16,7 @@ import {
   type UsersQuery,
 } from "@/app/lib/admin-client";
 import { usePresence } from "@/app/lib/use-presence";
+import { CopyButton } from "../../CopyButton";
 import { UserPanel } from "./UserPanel";
 import { StatusDot } from "./StatusDot";
 
@@ -261,13 +262,19 @@ export function UsersExplorer({
         cell: (c) => {
           const u = c.row.original;
           return (
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="truncate text-white">{u.email}</span>
-              {u.is_admin && (
-                <span className="text-[10px] text-yellow-500 shrink-0">
-                  admin
-                </span>
-              )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="truncate text-white">{u.email}</span>
+                {u.is_admin && (
+                  <span className="text-[10px] text-yellow-500 shrink-0">
+                    admin
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1 min-w-0 text-[10px] text-gray-500">
+                <span className="truncate font-mono">@{u.handle}</span>
+                <CopyButton value={u.handle} label="handle" />
+              </div>
             </div>
           );
         },
@@ -500,7 +507,7 @@ export function UsersExplorer({
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search email… (enter)"
+            placeholder="Search email or @handle… (enter)"
             className="w-full bg-gray-950 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white placeholder-gray-700 focus:outline-none focus:border-gray-600"
           />
         </form>
