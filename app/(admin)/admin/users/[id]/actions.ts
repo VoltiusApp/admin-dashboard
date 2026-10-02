@@ -156,19 +156,34 @@ export async function setHandleAction(
   formData: FormData,
 ): Promise<{ error: string | null }> {
   const handle = String(formData.get("handle") ?? "").trim();
-  const res = await adminFetch(`/v1/admin/users/${userId}/handle`, {
-    method: "PUT",
-    body: JSON.stringify({ handle }),
-  });
+  let res: Response;
+  try {
+    res = await adminFetch(`/v1/admin/users/${userId}/handle`, {
+      method: "PUT",
+      body: JSON.stringify({ handle }),
+    });
+  } catch {
+    return { error: "Server unreachable." };
+  }
   if (!res.ok) return { error: HANDLE_ERRORS[res.status] ?? `Failed (${res.status}).` };
   revalidatePath(`/admin/users/${userId}`);
   return { error: null };
 }
 
-export async function deriveHandlesAction(): Promise<void> {
-  await adminFetch(`/v1/admin/handles/derive`, {
-    method: "POST",
-    body: JSON.stringify({ dry_run: false }),
-  });
-  revalidatePath(`/admin/handles`);
+export type DeriveResult = { applied: number } | { error: string } | null;
+
+export async function deriveHandlesAction(_prev?: DeriveResult): Promise<DeriveResult> {
+  try {
+    const res = await adminFetch(`/v1/admin/handles/derive`, {
+      method: "POST",
+      body: JSON.stringify({ dry_run: false }),
+    });
+    if (res.status === 409) return { error: "HANDLES_FROM_EMAIL is off on the server." };
+    if (!res.ok) return { error: `Failed (${res.status}).` };
+    const rows: { reason: string }[] = await res.json();
+    revalidatePath(`/admin/handles`);
+    return { applied: rows.filter((r) => r.reason === "ok").length };
+  } catch {
+    return { error: "Server unreachable." };
+  }
 }

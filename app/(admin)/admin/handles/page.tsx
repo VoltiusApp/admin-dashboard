@@ -1,5 +1,6 @@
 import { adminFetch } from "@/app/lib/admin-api";
-import { deriveHandlesAction } from "../users/[id]/actions";
+import Link from "next/link";
+import { ApplyButton } from "./ApplyButton";
 
 interface DeriveRow {
   user_id: string;
@@ -39,18 +40,10 @@ export default async function HandlesPage() {
     <div className="p-6 max-w-5xl space-y-4">
       <h1 className="text-xl font-bold text-white">Handles from email</h1>
       <p className="text-sm text-gray-400">
-        {changes} of {rows.length} accounts will change. Each old handle is retired for good. Rows marked
-        “set by hand” stay as they are; fix them from the user’s page.
+        {changes === 0 ? "Nothing to change." : `${changes} of ${pending.length} listed accounts will change.`} Each
+        old handle is retired for good. Rows marked “set by hand” stay as they are; fix them from the user’s page.
       </p>
-      <form action={deriveHandlesAction}>
-        <button
-          type="submit"
-          disabled={changes === 0}
-          className="text-sm px-4 py-2 rounded bg-yellow-700 hover:bg-yellow-600 text-white disabled:opacity-40"
-        >
-          Apply {changes} change{changes === 1 ? "" : "s"}
-        </button>
-      </form>
+      <ApplyButton changes={changes} />
       <table className="w-full text-sm">
         <thead className="text-gray-500 text-left">
           <tr><th>Email</th><th>Current</th><th>From email</th><th>Status</th></tr>
@@ -62,7 +55,7 @@ export default async function HandlesPage() {
               <td className="font-mono text-gray-400">@{r.old}</td>
               <td className="font-mono text-white">{r.new ? `@${r.new}` : "—"}</td>
               <td className={r.reason === "ok" ? "text-green-400" : "text-yellow-400"}>
-                <a href={`/admin/users/${r.user_id}`}>{REASON[r.reason]}</a>
+                <Link href={`/admin/users/${r.user_id}`}>{REASON[r.reason]}</Link>
               </td>
             </tr>
           ))}

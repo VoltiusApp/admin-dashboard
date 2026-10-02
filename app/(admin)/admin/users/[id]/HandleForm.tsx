@@ -10,6 +10,7 @@ export function HandleForm({ userId, handle }: { userId: string; handle: string 
       <div className="flex gap-2 items-center">
         <span className="text-gray-500 text-sm">@</span>
         <input
+          key={handle}
           name="handle"
           defaultValue={handle}
           className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white font-mono"

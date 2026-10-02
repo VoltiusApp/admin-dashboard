@@ -2,16 +2,14 @@ import Link from "next/link";
 import { logoutAction } from "../(admin-public)/admin/login/actions";
 import { Providers } from "./providers";
 import { OnlineBadge } from "./OnlineBadge";
-import { adminFetch } from "@/app/lib/admin-api";
+import { getMeta } from "@/app/lib/get-meta";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const meta = await adminFetch("/v1/meta")
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null);
+  const meta = await getMeta();
   return (
     <Providers>
     <div className="min-h-screen flex bg-gray-950 text-gray-100 font-mono">
@@ -27,7 +25,7 @@ export default async function AdminLayout({
           <NavLink href="/admin/users">Users</NavLink>
           <NavLink href="/admin/churn">Churn</NavLink>
           <NavLink href="/admin/audit">Audit Log</NavLink>
-          {meta?.handles_from_email && <NavLink href="/admin/handles">Handles</NavLink>}
+          {meta.handles_from_email && <NavLink href="/admin/handles">Handles</NavLink>}
           <div className="mt-2 space-y-2">
             <OnlineBadge />
             <div className="px-3 py-2 text-[10px] text-gray-600 border border-gray-800 rounded">
