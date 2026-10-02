@@ -9,6 +9,7 @@ import {
   setFlagAction,
 } from "./actions";
 import { DangerZone } from "./DangerZone";
+import { HandleForm } from "./HandleForm";
 import { CopyButton } from "../../../CopyButton";
 
 interface UserDetail {
@@ -143,6 +144,7 @@ export default async function UserDetailPage({
         <KV label="ID" value={user.id} mono />
         <KV label="Account ID" value={user.account_id} mono />
         <KV label="Handle" value={`@${user.handle}`} mono copy={user.handle} />
+        <HandleForm userId={user.id} handle={user.handle} />
         <KV label="Email" value={user.email} />
         <KV label="Created" value={fmt(user.created_at)} />
         {/* A calendar date, not an instant — shown as-is rather than through
