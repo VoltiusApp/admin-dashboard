@@ -143,3 +143,32 @@ export async function restoreUserAction(userId: string) {
   revalidatePath(`/admin/users/${userId}`);
   revalidatePath("/admin/users");
 }
+
+const HANDLE_ERRORS: Record<number, string> = {
+  404: "User not found.",
+  409: "That handle is taken or was used before.",
+  422: "Handles are 3–30 lowercase letters, digits, - or _, and some names are reserved.",
+};
+
+export async function setHandleAction(
+  userId: string,
+  _prev: { error: string | null },
+  formData: FormData,
+): Promise<{ error: string | null }> {
+  const handle = String(formData.get("handle") ?? "").trim();
+  const res = await adminFetch(`/v1/admin/users/${userId}/handle`, {
+    method: "PUT",
+    body: JSON.stringify({ handle }),
+  });
+  if (!res.ok) return { error: HANDLE_ERRORS[res.status] ?? `Failed (${res.status}).` };
+  revalidatePath(`/admin/users/${userId}`);
+  return { error: null };
+}
+
+export async function deriveHandlesAction(): Promise<void> {
+  await adminFetch(`/v1/admin/handles/derive`, {
+    method: "POST",
+    body: JSON.stringify({ dry_run: false }),
+  });
+  revalidatePath(`/admin/handles`);
+}

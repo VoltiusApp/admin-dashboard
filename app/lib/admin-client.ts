@@ -231,6 +231,7 @@ export interface PresenceResponse {
 export interface ServerMeta {
   self_hosted: boolean;
   billing_enabled: boolean;
+  handles_from_email?: boolean;
 }
 
 export async function fetchMeta(): Promise<ServerMeta> {
