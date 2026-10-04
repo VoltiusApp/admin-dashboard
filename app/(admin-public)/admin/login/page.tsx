@@ -3,6 +3,7 @@ import { loginAction } from "./actions";
 const ERROR_MESSAGES: Record<string, string> = {
   credentials: "Invalid email or password.",
   not_admin: "This account does not have admin access.",
+  config: "Login is not configured: set ADMIN_SECRET and ADMIN_PASSWORD.",
 };
 
 export default async function AdminLoginPage({

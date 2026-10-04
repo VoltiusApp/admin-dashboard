@@ -1,8 +1,5 @@
-import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
-
-const API_URL = process.env.ADMIN_API_URL ?? "http://localhost:8080";
-const ADMIN_SECRET = process.env.ADMIN_SECRET ?? "";
+import { adminAuthHeaders, API_URL, unauthorized } from "@/app/lib/admin-api";
 
 // Hop-by-hop headers + ones we set ourselves; never forward upstream.
 const STRIPPED_RESPONSE_HEADERS = new Set([
@@ -20,15 +17,12 @@ const STRIPPED_RESPONSE_HEADERS = new Set([
 
 async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
-  const cookieStore = await cookies();
-  const adminEmail = cookieStore.get("ADMIN_SESSION")?.value ?? "";
+  const headers = await adminAuthHeaders();
+  if (!headers) return unauthorized();
 
   const search = req.nextUrl.search;
   const upstreamUrl = `${API_URL}/v1/admin/${path.join("/")}${search}`;
 
-  const headers = new Headers();
-  headers.set("X-Admin-Key", ADMIN_SECRET);
-  headers.set("X-Admin-Email", adminEmail);
   const ct = req.headers.get("content-type");
   if (ct) headers.set("content-type", ct);
   const accept = req.headers.get("accept");

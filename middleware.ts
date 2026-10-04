@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySession } from "@/app/lib/session";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (path === "/admin/login") {
     return NextResponse.next();
   }
-  const session = request.cookies.get("ADMIN_SESSION");
-  if (!session?.value) {
+  const email = await verifySession(request.cookies.get(SESSION_COOKIE)?.value);
+  if (!email) {
     if (path.startsWith("/api/")) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
