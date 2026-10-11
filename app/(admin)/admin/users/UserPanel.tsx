@@ -112,6 +112,19 @@ export function UserPanel({ id }: { id: string }) {
     onSettled: invalidateUser,
   });
 
+  const clearTwoFactorMutation = useMutation({
+    mutationFn: () => adminApi.users.clearTwoFactor(id),
+    onError: () => {
+      toast.error("Failed to clear two-factor authentication");
+    },
+    onSuccess: () => {
+      toast.success(`Cleared two-factor for ${userQuery.data?.email ?? "user"}`, {
+        description: "Their sessions were ended. The master password alone signs in now.",
+      });
+    },
+    onSettled: invalidateUser,
+  });
+
   const tierMutation = useMutation({
     mutationFn: ({ tier }: { tier: string }) =>
       adminApi.users.patch(id, { tier }),
@@ -313,6 +326,15 @@ export function UserPanel({ id }: { id: string }) {
             />
           )}
         </Section>
+
+        {user.two_factor_enabled && (
+          <Section title="Two-factor authentication">
+            <TwoFactorRow
+              pending={clearTwoFactorMutation.isPending}
+              onClear={() => clearTwoFactorMutation.mutate()}
+            />
+          </Section>
+        )}
 
         {/* Notes */}
         {user.admin_notes && (
@@ -543,6 +565,37 @@ function TrialControl({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+function TwoFactorRow({
+  pending,
+  onClear,
+}: {
+  pending: boolean;
+  onClear: () => void;
+}) {
+  // Two clicks: this hands the account back to whoever knows the master password.
+  const [armed, setArmed] = useState(false);
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="text-xs text-gray-300 min-w-0">
+        <div>On</div>
+        <div className="text-gray-500 text-[10px] mt-0.5">
+          Clear only for someone who lost both the authenticator and the
+          recovery codes, after checking who is asking.
+        </div>
+      </div>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => (armed ? onClear() : setArmed(true))}
+        onBlur={() => setArmed(false)}
+        className="bg-red-950 hover:bg-red-900 disabled:opacity-50 text-red-300 text-xs px-3 py-1.5 rounded shrink-0"
+      >
+        {pending ? "…" : armed ? "Confirm clear" : "Clear"}
+      </button>
     </div>
   );
 }

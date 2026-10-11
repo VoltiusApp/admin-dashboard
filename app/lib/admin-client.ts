@@ -56,6 +56,8 @@ export interface UserDetail {
   deleted_at: string | null;
   deletion_reason: string | null;
   deleted_by: string | null;
+  /** Absent from servers that predate two-factor sign-in. */
+  two_factor_enabled?: boolean;
 }
 
 export interface OverviewResponse {
@@ -282,6 +284,12 @@ export const adminApi = {
 
     unban: (id: string) =>
       request<void>(`/users/${id}/unban`, {
+        method: "POST",
+        expectEmpty: true,
+      }),
+
+    clearTwoFactor: (id: string) =>
+      request<void>(`/users/${id}/2fa/clear`, {
         method: "POST",
         expectEmpty: true,
       }),
