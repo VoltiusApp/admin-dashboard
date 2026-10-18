@@ -41,3 +41,19 @@ The container binds to port `3001` on the host. Restrict access at the firewall 
 git pull
 docker compose up -d --build
 ```
+
+## Production
+
+Production runs on the voltius host from `/home/ubuntu/fourretout/voltius-admin-dashboard`, a
+checkout of this repo. Its environment is `.env.prod` in that tree (untracked, gitignored, mode
+600), and `docker-compose.loopback-only.yml` binds the port to `127.0.0.1` only, so the
+dashboard is reached through an SSH or Tailscale tunnel to the host:
+
+```bash
+cd /home/ubuntu/fourretout/voltius-admin-dashboard
+git pull
+docker compose -p voltius-admin-dashboard --env-file .env.prod \
+  -f docker-compose.yml -f docker-compose.loopback-only.yml up -d --build
+```
+
+Both `-f` flags are required: without the second one the port is published on every interface.
