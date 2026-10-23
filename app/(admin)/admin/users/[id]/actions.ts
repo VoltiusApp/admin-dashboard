@@ -34,6 +34,14 @@ export async function patchUserAction(userId: string, formData: FormData) {
   revalidatePath(`/admin/users/${userId}`);
 }
 
+export async function setEmailVerifiedAction(userId: string, verified: boolean) {
+  await adminFetch(`/v1/admin/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ email_verified: verified }),
+  });
+  revalidatePath(`/admin/users/${userId}`);
+}
+
 export async function banUserAction(userId: string, formData: FormData) {
   const reason = formData.get("reason") as string;
   await adminFetch(`/v1/admin/users/${userId}/ban`, {
