@@ -7,6 +7,7 @@ import {
   setTrialAction,
   clearTrialAction,
   setFlagAction,
+  setEmailVerifiedAction,
 } from "./actions";
 import { DangerZone } from "./DangerZone";
 import { HandleForm } from "./HandleForm";
@@ -35,6 +36,10 @@ interface UserDetail {
   deleted_at: string | null;
   deletion_reason: string | null;
   deleted_by: string | null;
+  // Optional: servers older than the email-verification admin patch omit them.
+  email_verified?: boolean;
+  email_verified_at?: string | null;
+  email_undeliverable_at?: string | null;
 }
 
 interface Device {
@@ -146,6 +151,50 @@ export default async function UserDetailPage({
         <KV label="Handle" value={`@${user.handle}`} mono copy={user.handle} />
         <HandleForm userId={user.id} handle={user.handle} />
         <KV label="Email" value={user.email} />
+        {user.email_verified !== undefined && (
+          <div className="flex items-center gap-4 text-sm py-0.5">
+            <span className="text-gray-500 w-28 shrink-0">Verification</span>
+            {user.email_verified ? (
+              <span className="bg-green-900 text-green-300 text-xs px-2 py-0.5 rounded">
+                VERIFIED
+                {user.email_verified_at && (
+                  <span className="text-green-500 ml-1">
+                    {new Date(user.email_verified_at).toLocaleDateString()}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded">
+                NOT VERIFIED
+              </span>
+            )}
+            {!user.email_verified && user.email_undeliverable_at && (
+              <span
+                className="bg-red-900 text-red-300 text-xs px-2 py-0.5 rounded"
+                title={`Bounced ${fmt(user.email_undeliverable_at)}`}
+              >
+                UNDELIVERABLE
+              </span>
+            )}
+            <form
+              action={async () => {
+                "use server";
+                await setEmailVerifiedAction(id, !user.email_verified);
+              }}
+            >
+              <button
+                type="submit"
+                className={`text-xs px-3 py-1 rounded ${
+                  user.email_verified
+                    ? "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                    : "bg-green-900 text-green-300 hover:bg-green-800"
+                }`}
+              >
+                {user.email_verified ? "Mark as unverified" : "Mark email as verified"}
+              </button>
+            </form>
+          </div>
+        )}
         <KV label="Created" value={fmt(user.created_at)} />
         {/* A calendar date, not an instant — shown as-is rather than through
             fmt(), which would render a misleading local midnight. */}
