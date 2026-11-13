@@ -466,6 +466,43 @@ export function HomeDashboard({
         </Section>
       )}
 
+      {/* Promo funnel */}
+      <Section
+        title="Promo funnel (30 days)"
+        right={
+          <span className="text-[10px] text-gray-500 tabular-nums">
+            {data.trials_activated_30d ?? 0} activated · {data.trial_to_paid_30d ?? 0} now paying
+          </span>
+        }
+      >
+        {(data.promo_funnel ?? []).length === 0 ? (
+          <p className="text-xs text-gray-600">No promo events yet.</p>
+        ) : (
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-widest text-gray-500">
+                <th className="py-1 font-bold">Promo</th>
+                <th className="py-1 font-bold">Source</th>
+                <th className="py-1 font-bold text-right">Shown</th>
+                <th className="py-1 font-bold text-right">Clicked</th>
+                <th className="py-1 font-bold text-right">Activated</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-900">
+              {(data.promo_funnel ?? []).map((r) => (
+                <tr key={`${r.promo}/${r.source}`} className="text-gray-300">
+                  <td className="py-2">{r.promo}</td>
+                  <td className="py-2 text-gray-400">{r.source}</td>
+                  <td className="py-2 text-right tabular-nums">{r.shown}</td>
+                  <td className="py-2 text-right tabular-nums">{r.clicked}</td>
+                  <td className="py-2 text-right tabular-nums">{r.activated}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Section>
+
       {/* Recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Section title="Recent signups">

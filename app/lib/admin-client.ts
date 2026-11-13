@@ -100,6 +100,15 @@ export interface OverviewResponse {
     reason: string | null;
     created_at: string;
   }[];
+  promo_funnel?: {
+    promo: string;
+    source: string;
+    shown: number;
+    clicked: number;
+    activated: number;
+  }[];
+  trials_activated_30d?: number;
+  trial_to_paid_30d?: number;
 }
 
 export interface LsRecentOrder {
