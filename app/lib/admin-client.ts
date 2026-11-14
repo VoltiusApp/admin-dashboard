@@ -83,7 +83,7 @@ export interface OverviewResponse {
   active_30d?: number;
   /** Accounts never stamped — not yet reconnected since last_seen_on shipped. */
   never_seen?: number;
-  tier_breakdown: { free: number; pro: number; pro_trial: number; teams: number; business: number };
+  tier_breakdown: { free: number; pro: number; pro_trial: number; teams: number; teams_trial?: number; business: number };
   signups_series: { day: string; count: number }[];
   churn_series: { day: string; count: number }[];
   recent_signups: {
@@ -100,6 +100,15 @@ export interface OverviewResponse {
     reason: string | null;
     created_at: string;
   }[];
+  promo_funnel?: {
+    promo: string;
+    source: string;
+    shown: number;
+    clicked: number;
+    activated: number;
+  }[];
+  trials_activated_30d?: number;
+  trial_to_paid_30d?: number;
 }
 
 export interface LsRecentOrder {

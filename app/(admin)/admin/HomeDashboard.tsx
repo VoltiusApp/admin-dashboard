@@ -29,6 +29,7 @@ const TIER_COLORS: Record<string, string> = {
   pro: "#60a5fa",
   pro_trial: "#fbbf24",
   teams: "#c084fc",
+  teams_trial: "#e9d5ff",
   business: "#4ade80",
 };
 
@@ -103,6 +104,7 @@ export function HomeDashboard({
     { name: "Pro", value: data.tier_breakdown.pro, color: TIER_COLORS.pro },
     { name: "Pro Trial", value: data.tier_breakdown.pro_trial, color: TIER_COLORS.pro_trial },
     { name: "Teams", value: data.tier_breakdown.teams, color: TIER_COLORS.teams },
+    { name: "Teams Trial", value: data.tier_breakdown.teams_trial ?? 0, color: TIER_COLORS.teams_trial },
     { name: "Business", value: data.tier_breakdown.business, color: TIER_COLORS.business },
   ].filter((d) => d.value > 0);
 
@@ -462,6 +464,45 @@ export function HomeDashboard({
                 <OrderRow key={o.id} order={o} />
               ))}
             </ul>
+          )}
+        </Section>
+      )}
+
+      {/* Promo funnel */}
+      {!selfHosted && (
+        <Section
+          title="Promo funnel (30 days)"
+          right={
+            <span className="text-[10px] text-gray-500 tabular-nums">
+              {data.trials_activated_30d ?? 0} activated · {data.trial_to_paid_30d ?? 0} now paying
+            </span>
+          }
+        >
+          {(data.promo_funnel ?? []).length === 0 ? (
+            <p className="text-xs text-gray-600">No promo events yet.</p>
+          ) : (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-[10px] uppercase tracking-widest text-gray-500">
+                  <th className="py-1 font-bold">Promo</th>
+                  <th className="py-1 font-bold">Source</th>
+                  <th className="py-1 font-bold text-right">Shown</th>
+                  <th className="py-1 font-bold text-right">Clicked</th>
+                  <th className="py-1 font-bold text-right">Activated</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-900">
+                {(data.promo_funnel ?? []).map((r) => (
+                  <tr key={`${r.promo}/${r.source}`} className="text-gray-300">
+                    <td className="py-2">{r.promo}</td>
+                    <td className="py-2 text-gray-400">{r.source}</td>
+                    <td className="py-2 text-right tabular-nums">{r.shown}</td>
+                    <td className="py-2 text-right tabular-nums">{r.clicked}</td>
+                    <td className="py-2 text-right tabular-nums">{r.activated}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </Section>
       )}
