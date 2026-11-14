@@ -20,6 +20,11 @@ export async function patchUserAction(userId: string, formData: FormData) {
     ? Number(formData.get("seat_count"))
     : undefined;
 
+  // Unchecked boxes are absent from FormData, so the marker says the toggles were rendered.
+  const offers = formData.has("trial_offers_present");
+  const pro_trial_available = offers ? formData.has("pro_trial_available") : undefined;
+  const teams_trial_available = offers ? formData.has("teams_trial_available") : undefined;
+
   await adminFetch(`/v1/admin/users/${userId}`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -28,6 +33,8 @@ export async function patchUserAction(userId: string, formData: FormData) {
       ...(admin_notes !== null ? { admin_notes } : {}),
       ...(trial_used !== undefined ? { trial_used } : {}),
       ...(seat_count !== undefined ? { seat_count } : {}),
+      ...(pro_trial_available !== undefined ? { pro_trial_available } : {}),
+      ...(teams_trial_available !== undefined ? { teams_trial_available } : {}),
       admin_override,
     }),
   });

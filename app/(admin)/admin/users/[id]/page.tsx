@@ -1,4 +1,5 @@
 import { adminFetch } from "@/app/lib/admin-api";
+import { getMeta } from "@/app/lib/get-meta";
 import Link from "next/link";
 import {
   patchUserAction,
@@ -36,6 +37,8 @@ interface UserDetail {
   deleted_at: string | null;
   deletion_reason: string | null;
   deleted_by: string | null;
+  pro_trial_available?: boolean;
+  teams_trial_available?: boolean;
   // Optional: servers older than the email-verification admin patch omit them.
   email_verified?: boolean;
   email_verified_at?: string | null;
@@ -90,6 +93,7 @@ export default async function UserDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const selfHosted = (await getMeta()).self_hosted;
 
   const [userRes, devicesRes, flagsRes, churnRes, auditRes] = await Promise.all(
     [
@@ -316,6 +320,35 @@ export default async function UserDetailPage({
               className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white resize-none"
             />
           </Field>
+          {!selfHosted && user.pro_trial_available !== undefined && (
+            <div className="flex flex-col gap-1">
+              <input type="hidden" name="trial_offers_present" value="true" />
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="pro_trial_available"
+                  id="pro_trial_available"
+                  defaultChecked={user.pro_trial_available}
+                  className="accent-green-400"
+                />
+                <label htmlFor="pro_trial_available" className="text-xs text-gray-400 select-none">
+                  Pro trial offer available
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="teams_trial_available"
+                  id="teams_trial_available"
+                  defaultChecked={user.teams_trial_available}
+                  className="accent-green-400"
+                />
+                <label htmlFor="teams_trial_available" className="text-xs text-gray-400 select-none">
+                  Teams trial offer available
+                </label>
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"

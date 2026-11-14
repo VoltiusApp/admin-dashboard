@@ -56,6 +56,9 @@ export interface UserDetail {
   deleted_at: string | null;
   deletion_reason: string | null;
   deleted_by: string | null;
+  /** Absent from servers that predate trial offers. */
+  pro_trial_available?: boolean;
+  teams_trial_available?: boolean;
   /** Absent from servers that predate two-factor sign-in. */
   two_factor_enabled?: boolean;
 }
@@ -173,6 +176,8 @@ export interface PatchUserBody {
   admin_notes?: string;
   admin_override?: boolean;
   seat_count?: number;
+  pro_trial_available?: boolean;
+  teams_trial_available?: boolean;
 }
 
 export interface DeleteResult {
