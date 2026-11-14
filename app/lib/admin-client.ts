@@ -83,7 +83,7 @@ export interface OverviewResponse {
   active_30d?: number;
   /** Accounts never stamped — not yet reconnected since last_seen_on shipped. */
   never_seen?: number;
-  tier_breakdown: { free: number; pro: number; pro_trial: number; teams: number; business: number };
+  tier_breakdown: { free: number; pro: number; pro_trial: number; teams: number; teams_trial?: number; business: number };
   signups_series: { day: string; count: number }[];
   churn_series: { day: string; count: number }[];
   recent_signups: {
