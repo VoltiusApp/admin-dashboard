@@ -214,7 +214,9 @@ export default async function UserDetailPage({
         <form action={patchUser} className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Tier">
+              {/* React resets the form after the action and never updates a select's defaultValue; the key remounts it. */}
               <select
+                key={user.subscription_tier}
                 name="tier"
                 defaultValue={user.subscription_tier}
                 className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white"
