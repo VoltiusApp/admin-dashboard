@@ -4,6 +4,16 @@ import { adminFetch } from "@/app/lib/admin-api";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+// Throws so a rejected change reaches the error boundary instead of looking saved.
+async function mutateUser(userId: string, path: string, init: RequestInit) {
+  const res = await adminFetch(`/v1/admin/users/${userId}${path}`, init);
+  if (!res.ok) throw new Error(`${init.method} /v1/admin/users/${userId}${path} failed: ${res.status}`);
+  revalidatePath(`/admin/users/${userId}`);
+}
+
+const patchUser = (userId: string, body: Record<string, unknown>) =>
+  mutateUser(userId, "", { method: "PATCH", body: JSON.stringify(body) });
+
 export async function patchUserAction(userId: string, formData: FormData) {
   const tier = formData.get("tier") as string | null;
   const discount_pct = formData.get("discount_pct")
@@ -27,68 +37,43 @@ export async function patchUserAction(userId: string, formData: FormData) {
   const pro_trial_available = offers ? formData.has("pro_trial_available") : undefined;
   const teams_trial_available = offers ? formData.has("teams_trial_available") : undefined;
 
-  await adminFetch(`/v1/admin/users/${userId}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      ...(tier ? { tier } : {}),
-      ...(discount_pct !== undefined ? { discount_pct } : {}),
-      ...(admin_notes !== null ? { admin_notes } : {}),
-      ...(trial_used !== undefined ? { trial_used } : {}),
-      ...(seat_count !== undefined ? { seat_count } : {}),
-      ...(unlimited_seats ? { unlimited_seats } : {}),
-      ...(pro_trial_available !== undefined ? { pro_trial_available } : {}),
-      ...(teams_trial_available !== undefined ? { teams_trial_available } : {}),
-      admin_override,
-    }),
+  await patchUser(userId, {
+    ...(tier ? { tier } : {}),
+    ...(discount_pct !== undefined ? { discount_pct } : {}),
+    ...(admin_notes !== null ? { admin_notes } : {}),
+    ...(trial_used !== undefined ? { trial_used } : {}),
+    ...(seat_count !== undefined ? { seat_count } : {}),
+    ...(unlimited_seats ? { unlimited_seats } : {}),
+    ...(pro_trial_available !== undefined ? { pro_trial_available } : {}),
+    ...(teams_trial_available !== undefined ? { teams_trial_available } : {}),
+    admin_override,
   });
-  revalidatePath(`/admin/users/${userId}`);
 }
 
 export async function setEmailVerifiedAction(userId: string, verified: boolean) {
-  await adminFetch(`/v1/admin/users/${userId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ email_verified: verified }),
-  });
-  revalidatePath(`/admin/users/${userId}`);
+  await patchUser(userId, { email_verified: verified });
 }
 
 export async function banUserAction(userId: string, formData: FormData) {
   const reason = formData.get("reason") as string;
-  await adminFetch(`/v1/admin/users/${userId}/ban`, {
-    method: "POST",
-    body: JSON.stringify({ reason }),
-  });
-  revalidatePath(`/admin/users/${userId}`);
+  await mutateUser(userId, "/ban", { method: "POST", body: JSON.stringify({ reason }) });
 }
 
 export async function unbanUserAction(userId: string) {
-  await adminFetch(`/v1/admin/users/${userId}/unban`, { method: "POST" });
-  revalidatePath(`/admin/users/${userId}`);
+  await mutateUser(userId, "/unban", { method: "POST" });
 }
 
 export async function clearTrialAction(userId: string) {
-  await adminFetch(`/v1/admin/users/${userId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ clear_trial: true, trial_used: true }),
-  });
-  revalidatePath(`/admin/users/${userId}`);
+  await patchUser(userId, { clear_trial: true, trial_used: true });
 }
 
 export async function extendTrialAction(userId: string, days: number) {
-  await adminFetch(`/v1/admin/users/${userId}/extend-trial`, {
-    method: "POST",
-    body: JSON.stringify({ days }),
-  });
-  revalidatePath(`/admin/users/${userId}`);
+  await mutateUser(userId, "/extend-trial", { method: "POST", body: JSON.stringify({ days }) });
 }
 
 export async function setTrialAction(userId: string, days: number) {
   const trial_ends_at = new Date(Date.now() + days * 86400000).toISOString();
-  await adminFetch(`/v1/admin/users/${userId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ trial_ends_at, trial_used: false }),
-  });
-  revalidatePath(`/admin/users/${userId}`);
+  await patchUser(userId, { trial_ends_at, trial_used: false });
 }
 
 export async function setFlagAction(
@@ -96,11 +81,7 @@ export async function setFlagAction(
   flag: string,
   enabled: boolean
 ) {
-  await adminFetch(`/v1/admin/users/${userId}/flags/${flag}`, {
-    method: "PUT",
-    body: JSON.stringify({ enabled }),
-  });
-  revalidatePath(`/admin/users/${userId}`);
+  await mutateUser(userId, `/flags/${flag}`, { method: "PUT", body: JSON.stringify({ enabled }) });
 }
 
 export type DeleteResult =
@@ -157,8 +138,7 @@ export async function deleteUserAction(
 }
 
 export async function restoreUserAction(userId: string) {
-  await adminFetch(`/v1/admin/users/${userId}/restore`, { method: "POST" });
-  revalidatePath(`/admin/users/${userId}`);
+  await mutateUser(userId, "/restore", { method: "POST" });
   revalidatePath("/admin/users");
 }
 
