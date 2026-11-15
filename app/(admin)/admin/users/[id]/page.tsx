@@ -10,6 +10,7 @@ import {
   setFlagAction,
   setEmailVerifiedAction,
 } from "./actions";
+import { SeatField } from "./SeatField";
 import { DangerZone } from "./DangerZone";
 import { HandleForm } from "./HandleForm";
 import { CopyButton } from "../../../CopyButton";
@@ -235,16 +236,13 @@ export default async function UserDetailPage({
                 className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white"
               />
             </Field>
-            <Field label="Seat count">
-              <input
-                name="seat_count"
-                type="number"
-                min={1}
-                defaultValue={user.seat_count ?? ""}
-                placeholder="—"
-                className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white"
-              />
-            </Field>
+            <SeatField
+              seatCount={user.seat_count}
+              unlimited={
+                (user.subscription_tier === "teams" || user.subscription_tier === "business") &&
+                user.seat_count === null
+              }
+            />
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-400 flex-wrap">
             <span>Trial used:</span>

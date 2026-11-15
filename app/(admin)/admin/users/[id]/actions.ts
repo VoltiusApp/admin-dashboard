@@ -16,9 +16,11 @@ export async function patchUserAction(userId: string, formData: FormData) {
   const admin_override = formData.has("admin_override")
     ? formData.get("admin_override") === "true"
     : false;
-  const seat_count = formData.get("seat_count")
-    ? Number(formData.get("seat_count"))
-    : undefined;
+  const unlimited_seats = formData.get("unlimited_seats") === "true";
+  const seat_count =
+    !unlimited_seats && formData.get("seat_count")
+      ? Number(formData.get("seat_count"))
+      : undefined;
 
   // Unchecked boxes are absent from FormData, so the marker says the toggles were rendered.
   const offers = formData.has("trial_offers_present");
@@ -33,6 +35,7 @@ export async function patchUserAction(userId: string, formData: FormData) {
       ...(admin_notes !== null ? { admin_notes } : {}),
       ...(trial_used !== undefined ? { trial_used } : {}),
       ...(seat_count !== undefined ? { seat_count } : {}),
+      ...(unlimited_seats ? { unlimited_seats } : {}),
       ...(pro_trial_available !== undefined ? { pro_trial_available } : {}),
       ...(teams_trial_available !== undefined ? { teams_trial_available } : {}),
       admin_override,
