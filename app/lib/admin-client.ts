@@ -176,6 +176,8 @@ export interface PatchUserBody {
   admin_notes?: string;
   admin_override?: boolean;
   seat_count?: number;
+  /** `true` clears the seat cap (seat_count becomes null). */
+  unlimited_seats?: boolean;
   pro_trial_available?: boolean;
   teams_trial_available?: boolean;
 }
